@@ -1,0 +1,13 @@
+.DS_Store
+
+# Neovim logs
+.nvimlog
+startup.log
+
+# Local temp / swap / backup files
+*.swp
+*.swo
+*~
+
+# Session files if you create them locally
+Session.vim
