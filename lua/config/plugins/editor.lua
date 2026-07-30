@@ -15,7 +15,21 @@ return {
             if not ok then return end
 
             configs.setup({
-                ensure_installed = { "rust", "toml", "lua", "vim", "vimdoc", "query", "json", "yaml", "markdown" },
+                ensure_installed = {
+                    "rust",
+                    "toml",
+                    "lua",
+                    "vim",
+                    "vimdoc",
+                    "query",
+                    "json",
+                    "yaml",
+                    "markdown",
+                    "go",
+                    "gomod",
+                    "gosum",
+                    "gowork",
+                },
                 highlight = { enable = true },
                 indent = { enable = true },
             })
@@ -448,10 +462,10 @@ return {
         event = "InsertEnter",
         init = function()
             vim.g.copilot_no_tab_map = true
-            vim.g.copilot_enabled = false
+            vim.g.copilot_enabled = true
         end,
         config = function()
-            vim.keymap.set("i", "<C-\\>", "<Plug>(copilot-suggest)", {
+            vim.keymap.set("i", "<C-g>", "<Plug>(copilot-suggest)", {
                 silent = true,
                 desc = "Copilot: показать подсказку (ручной запуск)",
             })

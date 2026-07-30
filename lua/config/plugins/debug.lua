@@ -32,10 +32,16 @@ return {
         "mfussenegger/nvim-dap",
         keys = {
             { "<leader>db", function() require("dap").toggle_breakpoint() end, desc = "DAP: переключить брейкпоинт" },
+            {
+                "<leader>dB",
+                function() require("dap").set_breakpoint(vim.fn.input("Breakpoint condition: ")) end,
+                desc = "DAP: условный брейкпоинт",
+            },
             { "<leader>dc", function() require("dap").continue() end, desc = "DAP: продолжить" },
             { "<leader>di", function() require("dap").step_into() end, desc = "DAP: шаг внутрь" },
             { "<leader>do", function() require("dap").step_over() end, desc = "DAP: шаг через" },
             { "<leader>dO", function() require("dap").step_out() end, desc = "DAP: шаг наружу" },
+            { "<leader>dr", function() require("dap").repl.toggle() end, desc = "DAP: REPL" },
         },
         config = function()
             local dap = require("dap")
@@ -78,6 +84,19 @@ return {
     -- DAP UI: окна стека/переменных/консоли для дебага
     -- Hotkeys: <leader>du
     -- --------------------------------------------------------
+    {
+        "leoluz/nvim-dap-go",
+        ft = { "go" },
+        dependencies = { "mfussenegger/nvim-dap" },
+        config = function()
+            require("dap-go").setup({
+                delve = {
+                    detached = vim.fn.has("win32") == 0,
+                },
+            })
+        end,
+    },
+
     {
         "rcarriga/nvim-dap-ui",
         dependencies = {
@@ -127,6 +146,7 @@ return {
             "nvim-lua/plenary.nvim",
             "nvim-treesitter/nvim-treesitter",
             "rouge8/neotest-rust",
+            "fredrikaverpil/neotest-golang",
         },
         keys = {
             {
@@ -154,6 +174,10 @@ return {
             require("neotest").setup({
                 adapters = {
                     require("neotest-rust")({}),
+                    require("neotest-golang")({
+                        go_test_args = { "-v", "-race", "-count=1", "-timeout=60s" },
+                        dap_go_enabled = true,
+                    }),
                 },
             })
         end,

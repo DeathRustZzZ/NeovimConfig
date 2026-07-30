@@ -62,14 +62,40 @@ return {
                     local navic_ok, navic = pcall(require, "nvim-navic")
                     vim.keymap.set("n", "gd", vim.lsp.buf.definition,
                         vim.tbl_extend("force", opts, { desc = "LSP: перейти к определению" }))
+                    vim.keymap.set("n", "gD", vim.lsp.buf.declaration,
+                        vim.tbl_extend("force", opts, { desc = "LSP: перейти к объявлению" }))
+                    vim.keymap.set("n", "gi", vim.lsp.buf.implementation,
+                        vim.tbl_extend("force", opts, { desc = "LSP: перейти к реализации" }))
                     vim.keymap.set("n", "gr", vim.lsp.buf.references,
                         vim.tbl_extend("force", opts, { desc = "LSP: показать ссылки" }))
+                    vim.keymap.set("n", "gy", vim.lsp.buf.type_definition,
+                        vim.tbl_extend("force", opts, { desc = "LSP: перейти к типу" }))
                     vim.keymap.set("n", "K", vim.lsp.buf.hover,
                         vim.tbl_extend("force", opts, { desc = "LSP: подсказка" }))
                     vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename,
                         vim.tbl_extend("force", opts, { desc = "LSP: переименовать" }))
                     vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action,
                         vim.tbl_extend("force", opts, { desc = "LSP: действия с кодом" }))
+                    vim.keymap.set("n", "<leader>ls", function()
+                        local ok, builtin = pcall(require, "telescope.builtin")
+                        if ok then
+                            builtin.lsp_document_symbols()
+                        else
+                            vim.lsp.buf.document_symbol()
+                        end
+                    end, vim.tbl_extend("force", opts, { desc = "LSP: символы документа" }))
+                    vim.keymap.set("n", "<leader>lS", function()
+                        local ok, builtin = pcall(require, "telescope.builtin")
+                        if ok then
+                            builtin.lsp_workspace_symbols()
+                        else
+                            vim.lsp.buf.workspace_symbol()
+                        end
+                    end, vim.tbl_extend("force", opts, { desc = "LSP: символы workspace" }))
+                    vim.keymap.set("n", "<leader>li", vim.lsp.buf.incoming_calls,
+                        vim.tbl_extend("force", opts, { desc = "LSP: incoming calls" }))
+                    vim.keymap.set("n", "<leader>lo", vim.lsp.buf.outgoing_calls,
+                        vim.tbl_extend("force", opts, { desc = "LSP: outgoing calls" }))
 
                     if client_supports_inlay_hints(client) then
                         set_inlay_hints(args.buf, true)
@@ -156,9 +182,48 @@ return {
                 taplo = {
                     capabilities = capabilities,
                 },
+                gopls = {
+                    capabilities = capabilities,
+                    settings = {
+                        gopls = {
+                            gofumpt = false,
+                            staticcheck = true,
+                            semanticTokens = true,
+                            usePlaceholders = true,
+                            completeUnimported = true,
+                            analyses = {
+                                nilness = true,
+                                shadow = true,
+                                unusedparams = true,
+                                unusedwrite = true,
+                            },
+                            codelenses = {
+                                gc_details = true,
+                                generate = true,
+                                regenerate_cgo = true,
+                                run_govulncheck = true,
+                                test = true,
+                                tidy = true,
+                                upgrade_dependency = true,
+                                vendor = true,
+                            },
+                            hints = {
+                                assignVariableTypes = true,
+                                compositeLiteralFields = true,
+                                compositeLiteralTypes = true,
+                                constantValues = true,
+                                functionTypeParameters = true,
+                                parameterNames = true,
+                                rangeVariableTypes = true,
+                            },
+                        },
+                    },
+                },
             }
 
-            local use_new_lsp_api = type(vim.lsp.config) == "function" and type(vim.lsp.enable) == "function"
+            local lsp_config_mt = type(vim.lsp.config) == "table" and getmetatable(vim.lsp.config) or nil
+            local use_new_lsp_api = type(vim.lsp.enable) == "function"
+                and (type(vim.lsp.config) == "function" or (lsp_config_mt and type(lsp_config_mt.__call) == "function"))
             local ok_lspconfig, lspconfig = pcall(require, "lspconfig")
 
             for server, config in pairs(servers) do

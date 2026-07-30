@@ -163,6 +163,7 @@ return {
 
             conform.setup({
                 formatters_by_ft = {
+                    go = { "goimports", "gofmt" },
                     rust = { "rustfmt" },
                     toml = { "taplo" },
                     lua = { "stylua" },
@@ -211,7 +212,7 @@ return {
         },
         opts = {
             automatic_enable = false,
-            ensure_installed = { "lua_ls", "taplo" },
+            ensure_installed = { "lua_ls", "taplo", "gopls" },
         },
     },
 
@@ -229,6 +230,13 @@ return {
                 "codelldb",
                 "taplo",
                 "stylua",
+                "gopls",
+                "goimports",
+                "delve",
+                "gomodifytags",
+                "impl",
+                "golangci-lint",
+                "staticcheck",
             },
             auto_update = false,
             run_on_start = false,
