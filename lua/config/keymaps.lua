@@ -35,6 +35,29 @@ local function notify_missing_trans()
     vim.notify("Команда `trans` не найдена. Установите translate-shell.", vim.log.levels.WARN)
 end
 
+local function graphify(args)
+    if vim.fn.executable("graphify") ~= 1 then
+        vim.notify("Команда `graphify` не найдена. Установите пакет graphifyy.", vim.log.levels.WARN)
+        return
+    end
+
+    local target = args and args ~= "" and args or "."
+    vim.cmd("botright split")
+    vim.cmd("resize 15")
+    vim.fn.termopen({ "graphify", target }, {
+        cwd = vim.fn.getcwd(),
+    })
+    vim.cmd("startinsert")
+end
+
+vim.api.nvim_create_user_command("Graphify", function(opts)
+    graphify(opts.args)
+end, {
+    nargs = "?",
+    complete = "dir",
+    desc = "Построить Graphify knowledge graph для директории",
+})
+
 local function translate_and_notify(source_text, empty_message)
     local text = source_text:gsub("^%s+", ""):gsub("%s+$", "")
     if text == "" then
@@ -72,6 +95,7 @@ map("v", "<C-s>", "<Esc><cmd>w<cr>", "Сохранить файл (Ctrl+S)")
 map("n", "<leader>q", smart_close, "Закрыть окно/буфер (без выхода из Neovim)")
 map("n", "<leader>Q", "<cmd>qa<cr>", "Выйти из Neovim")
 map("n", "<leader>cl", copy_whole_buffer_to_clipboard, "Скопировать весь буфер в буфер обмена")
+map("n", "<leader>ag", function() graphify(".") end, "AI: Graphify текущий проект")
 
 map("i", "jk", "<Esc>", "Выйти из режима вставки")
 

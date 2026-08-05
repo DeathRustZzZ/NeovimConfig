@@ -59,7 +59,6 @@ return {
                 callback = function(args)
                     local opts = { buffer = args.buf }
                     local client = vim.lsp.get_client_by_id(args.data.client_id)
-                    local navic_ok, navic = pcall(require, "nvim-navic")
                     vim.keymap.set("n", "gd", vim.lsp.buf.definition,
                         vim.tbl_extend("force", opts, { desc = "LSP: перейти к определению" }))
                     vim.keymap.set("n", "gD", vim.lsp.buf.declaration,
@@ -99,10 +98,6 @@ return {
 
                     if client_supports_inlay_hints(client) then
                         set_inlay_hints(args.buf, true)
-                    end
-
-                    if navic_ok and client and client.server_capabilities and client.server_capabilities.documentSymbolProvider then
-                        pcall(navic.attach, client, args.buf)
                     end
 
                     vim.keymap.set("n", "<leader>uh", function()

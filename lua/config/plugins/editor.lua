@@ -6,32 +6,42 @@ return {
     {
         "nvim-treesitter/nvim-treesitter",
         build = ":TSUpdate",
-        event = { "BufReadPost", "BufNewFile" },
+        lazy = false,
         dependencies = {
+            "williamboman/mason.nvim",
             "HiPhish/rainbow-delimiters.nvim",
         },
         config = function()
-            local ok, configs = pcall(require, "nvim-treesitter.configs")
-            if not ok then return end
+            local languages = {
+                "rust",
+                "toml",
+                "lua",
+                "vim",
+                "vimdoc",
+                "query",
+                "json",
+                "yaml",
+                "markdown",
+                "go",
+                "gomod",
+                "gosum",
+                "gowork",
+                "bash",
+                "javascript",
+                "typescript",
+            }
 
-            configs.setup({
-                ensure_installed = {
-                    "rust",
-                    "toml",
-                    "lua",
-                    "vim",
-                    "vimdoc",
-                    "query",
-                    "json",
-                    "yaml",
-                    "markdown",
-                    "go",
-                    "gomod",
-                    "gosum",
-                    "gowork",
-                },
-                highlight = { enable = true },
-                indent = { enable = true },
+            require("nvim-treesitter").setup({
+                install_dir = vim.fn.stdpath("data") .. "/site",
+            })
+
+            vim.api.nvim_create_autocmd("FileType", {
+                group = vim.api.nvim_create_augroup("UserTreesitterStart", { clear = true }),
+                pattern = languages,
+                callback = function()
+                    pcall(vim.treesitter.start)
+                    vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+                end,
             })
         end,
     },
@@ -66,29 +76,33 @@ return {
         "nvim-treesitter/nvim-treesitter-textobjects",
         event = { "BufReadPost", "BufNewFile" },
         config = function()
-            local ok, configs = pcall(require, "nvim-treesitter.configs")
-            if not ok then return end
-
-            configs.setup({
-                textobjects = {
-                    select = {
-                        enable = true,
-                        lookahead = true,
-                        keymaps = {
-                            ["af"] = "@function.outer",
-                            ["if"] = "@function.inner",
-                            ["ac"] = "@class.outer",
-                            ["ic"] = "@class.inner",
-                        },
-                    },
-                    move = {
-                        enable = true,
-                        set_jumps = true,
-                        goto_next_start = { ["]m"] = "@function.outer" },
-                        goto_previous_start = { ["[m"] = "@function.outer" },
-                    },
+            require("nvim-treesitter-textobjects").setup({
+                select = {
+                    lookahead = true,
+                },
+                move = {
+                    set_jumps = true,
                 },
             })
+
+            vim.keymap.set({ "x", "o" }, "af", function()
+                require("nvim-treesitter-textobjects.select").select_textobject("@function.outer", "textobjects")
+            end, { desc = "Treesitter: выбрать функцию" })
+            vim.keymap.set({ "x", "o" }, "if", function()
+                require("nvim-treesitter-textobjects.select").select_textobject("@function.inner", "textobjects")
+            end, { desc = "Treesitter: внутри функции" })
+            vim.keymap.set({ "x", "o" }, "ac", function()
+                require("nvim-treesitter-textobjects.select").select_textobject("@class.outer", "textobjects")
+            end, { desc = "Treesitter: выбрать класс/тип" })
+            vim.keymap.set({ "x", "o" }, "ic", function()
+                require("nvim-treesitter-textobjects.select").select_textobject("@class.inner", "textobjects")
+            end, { desc = "Treesitter: внутри класса/типа" })
+            vim.keymap.set({ "n", "x", "o" }, "]m", function()
+                require("nvim-treesitter-textobjects.move").goto_next_start("@function.outer", "textobjects")
+            end, { desc = "Treesitter: следующая функция" })
+            vim.keymap.set({ "n", "x", "o" }, "[m", function()
+                require("nvim-treesitter-textobjects.move").goto_previous_start("@function.outer", "textobjects")
+            end, { desc = "Treesitter: предыдущая функция" })
         end,
     },
 
@@ -188,12 +202,15 @@ return {
     {
         "lewis6991/gitsigns.nvim",
         event = { "BufReadPost", "BufNewFile" },
+        keys = {
+            -- Lazy.nvim загрузит gitsigns при первом использовании hunk-команд.
+            { "<leader>hs", function() require("gitsigns").stage_hunk() end, desc = "Добавить hunk в индекс" },
+            { "<leader>hr", function() require("gitsigns").reset_hunk() end, desc = "Откатить hunk" },
+            { "<leader>hp", function() require("gitsigns").preview_hunk() end, desc = "Предпросмотр hunk" },
+            { "<leader>hb", function() require("gitsigns").blame_line() end, desc = "Blame строки" },
+        },
         config = function()
             require("gitsigns").setup()
-            vim.keymap.set("n", "<leader>hs", require("gitsigns").stage_hunk, { desc = "Добавить hunk в индекс" })
-            vim.keymap.set("n", "<leader>hr", require("gitsigns").reset_hunk, { desc = "Откатить hunk" })
-            vim.keymap.set("n", "<leader>hp", require("gitsigns").preview_hunk, { desc = "Предпросмотр hunk" })
-            vim.keymap.set("n", "<leader>hb", require("gitsigns").blame_line, { desc = "Blame строки" })
         end,
     },
 

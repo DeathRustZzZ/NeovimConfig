@@ -232,9 +232,44 @@ return {
     -- --------------------------------------------------------
     {
         "nvim-lualine/lualine.nvim",
-        dependencies = { "nvim-tree/nvim-web-devicons" },
+        dependencies = {
+            "nvim-tree/nvim-web-devicons",
+            -- CapsDetect обновляет vim.g.caps_state, чтобы lualine мог показывать Caps Lock только когда он включён.
+            {
+                "nikita-edel/capsdetect.nvim",
+                config = function()
+                    local capsdetect = require("capsdetect")
+
+                    -- Отключаем встроенное floating-окно плагина: индикатор нужен только в statusline.
+                    capsdetect.stop()
+                    capsdetect.setup({
+                        schedule = {
+                            update_global = true,
+                            -- Принудительно обновляем lualine после изменения состояния Caps Lock.
+                            callback = function()
+                                local ok, lualine = pcall(require, "lualine")
+                                if ok then
+                                    pcall(lualine.refresh, {
+                                        place = { "statusline" },
+                                        scope = "tabpage",
+                                    })
+                                end
+                            end,
+                        },
+                        indicator = {
+                            use_indicator = false,
+                        },
+                    })
+                end,
+            },
+        },
         event = "VimEnter",
         config = function()
+            -- Компонент возвращает пустую строку, поэтому при выключенном Caps Lock место не резервируется.
+            local capslock = function()
+                return vim.g.caps_state and "󰘲 CAPS" or ""
+            end
+
             require("lualine").setup({
                 options = {
                     theme = "auto",
@@ -251,7 +286,13 @@ return {
                             symbols = { modified = " ●", readonly = " ", unnamed = "[No Name]" },
                         },
                     },
-                    lualine_x = { "diagnostics", "encoding", "filetype" },
+                    lualine_x = {
+                        -- Условный индикатор Caps Lock использует текущую тему lualine без переопределения цветов.
+                        { capslock, cond = function() return vim.g.caps_state == true end },
+                        "diagnostics",
+                        "encoding",
+                        "filetype",
+                    },
                     lualine_y = { "progress" },
                     lualine_z = { "location" },
                 },
@@ -434,7 +475,7 @@ return {
 
     -- --------------------------------------------------------
     -- Aerial: структура файла (символы/функции/типы) в отдельной панели
-    -- Hotkeys: <leader>o
+    -- Hotkeys: <leader>o/<leader>O/[o/]o
     -- --------------------------------------------------------
     {
         "stevearc/aerial.nvim",
@@ -445,14 +486,29 @@ return {
         },
         keys = {
             { "<leader>o", "<cmd>AerialToggle right<cr>", desc = "Структура файла (Aerial)" },
+            { "<leader>O", "<cmd>AerialNavToggle<cr>", desc = "Навигация по структуре (Aerial)" },
+            { "[o", "<cmd>AerialPrev<cr>", desc = "Предыдущий символ (Aerial)" },
+            { "]o", "<cmd>AerialNext<cr>", desc = "Следующий символ (Aerial)" },
         },
         opts = {
+            backends = { "lsp", "treesitter", "markdown", "man" },
             layout = {
                 default_direction = "right",
                 min_width = 28,
+                max_width = 42,
+                resize_to_content = true,
             },
             show_guides = true,
             filter_kind = false,
+            highlight_on_hover = true,
+            autojump = false,
+            close_on_select = false,
+            nav = {
+                border = "rounded",
+                max_height = 0.6,
+                min_width = 24,
+                preview = true,
+            },
         },
     },
 

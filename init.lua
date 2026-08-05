@@ -13,4 +13,6 @@ require("lazy").setup("config.plugins", {
 })
 
 require("config.autocmds")
+-- Управление раскладкой привязано к режимам Neovim, поэтому подключается после базовых autocmd.
+require("config.input_method").setup()
 require("config.keymaps")

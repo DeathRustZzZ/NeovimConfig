@@ -232,6 +232,7 @@ return {
                 "stylua",
                 "gopls",
                 "goimports",
+                "tree-sitter-cli",
                 "delve",
                 "gomodifytags",
                 "impl",

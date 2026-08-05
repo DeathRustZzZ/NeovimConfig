@@ -70,6 +70,21 @@
 | `<leader>rn` | Переименовать символ |
 | `<leader>ca` | Code action |
 | `<leader>uh` | Вкл/выкл inlay hints |
+| `<leader>ld` | Preview definitions без прыжка (Glance) |
+| `<leader>lR` | Preview references без прыжка (Glance) |
+| `<leader>ly` | Preview type definitions (Glance) |
+| `<leader>lm` | Preview implementations (Glance) |
+| `<leader>lf` | LSP finder: type/reference/implementation/definition (Lspsaga) |
+| `<leader>lp` | Peek definition (Lspsaga) |
+| `<leader>lP` | Peek type definition (Lspsaga) |
+| `<leader>lh` | Hover-документация (Lspsaga) |
+| `<leader>la` | Code action (Lspsaga) |
+| `<leader>ln` | Rename (Lspsaga) |
+| `<leader>lc` | Incoming calls (Lspsaga) |
+| `<leader>lC` | Outgoing calls (Lspsaga) |
+| `<leader>lI` | Incoming call tree (Calltree) |
+| `<leader>lO` | Outgoing call tree (Calltree) |
+| `<leader>lT` | Показать/скрыть Calltree panel |
 
 ### Rust-специфично
 | Клавиша | Что делает |
@@ -89,6 +104,9 @@
 | `<leader>e` | Показать/скрыть Neo-tree |
 | `<leader>E` | Показать текущий файл в Neo-tree |
 | `<leader>o` | Outline (Aerial) |
+| `<leader>O` | Навигационное окно Aerial |
+| `[o` | Предыдущий символ Aerial |
+| `]o` | Следующий символ Aerial |
 
 ### Telescope
 | Клавиша | Что делает |
@@ -236,6 +254,13 @@
 | `<leader>ar` | Review code | `n`,`x` |
 | `<leader>af` | Fix code | `n`,`x` |
 | `<leader>ax` | Переключить Codex панель | `n` |
+| `<leader>ag` | Запустить Graphify для текущего проекта | `n` |
+
+### Graphify
+| Команда | Что делает |
+|---|---|
+| `:Graphify` | Построить knowledge graph для текущей директории |
+| `:Graphify path/to/project` | Построить graph для выбранной директории |
 
 ---
 
