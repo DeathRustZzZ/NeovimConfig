@@ -106,7 +106,7 @@ return {
 
     -- --------------------------------------------------------
     -- Rust crates: версии/апдейты в Cargo.toml + встроенный LSP crates.nvim
-    -- Hotkeys: <leader>cp/<leader>ch/<leader>cd/<leader>cu/<leader>cU
+    -- Hotkeys: <leader>ch/<leader>cd/<leader>cu/<leader>cU
     -- --------------------------------------------------------
     {
         "saecki/crates.nvim",
@@ -124,7 +124,6 @@ return {
                 },
             })
 
-            vim.keymap.set("n", "<leader>cp", "<cmd>CratesShowPopup<cr>", { desc = "Crates: всплывающее окно" })
             vim.keymap.set("n", "<leader>ch", "<cmd>CratesShowPopup<cr>", { desc = "Crates: всплывающее окно" })
             vim.keymap.set("n", "<leader>cd", function()
                 if crates.open_documentation and pcall(crates.open_documentation) then
@@ -157,11 +156,18 @@ return {
     -- --------------------------------------------------------
     {
         "stevearc/conform.nvim",
-        event = { "BufWritePre" },
+        event = "BufWritePre",
+        keys = {
+            {
+                "<leader>cf",
+                function()
+                    require("conform").format({ async = true, lsp_format = "fallback" })
+                end,
+                desc = "Форматировать файл",
+            },
+        },
         config = function()
-            local conform = require("conform")
-
-            conform.setup({
+            require("conform").setup({
                 formatters_by_ft = {
                     go = { "goimports", "gofmt" },
                     rust = { "rustfmt" },
@@ -171,14 +177,10 @@ return {
                 format_on_save = function(_)
                     return {
                         timeout_ms = 1500,
-                        lsp_fallback = true,
+                        lsp_format = "fallback",
                     }
                 end,
             })
-
-            vim.keymap.set("n", "<leader>f", function()
-                conform.format({ async = true, lsp_fallback = true })
-            end, { desc = "Форматировать файл" })
         end,
     },
 
@@ -193,6 +195,7 @@ return {
             { "<leader>pm", "<cmd>Mason<cr>", desc = "Менеджер пакетов (Mason)" },
         },
         opts = {
+            PATH = "append",
             ui = {
                 border = "rounded",
             },
@@ -222,15 +225,17 @@ return {
     -- --------------------------------------------------------
     {
         "WhoIsSethDaniel/mason-tool-installer.nvim",
-        event = "VeryLazy",
+        cmd = {
+            "MasonToolsInstall",
+            "MasonToolsInstallSync",
+            "MasonToolsUpdate",
+            "MasonToolsUpdateSync",
+        },
         dependencies = { "williamboman/mason.nvim" },
         opts = {
             ensure_installed = {
-                "rust-analyzer",
                 "codelldb",
-                "taplo",
                 "stylua",
-                "gopls",
                 "goimports",
                 "tree-sitter-cli",
                 "delve",

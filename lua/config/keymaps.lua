@@ -42,9 +42,15 @@ local function graphify(args)
     local target = args and args ~= "" and args or "."
     vim.cmd("botright split")
     vim.cmd("resize 15")
-    vim.fn.termopen({ "graphify", target }, {
+    vim.cmd("enew")
+    local job_id = vim.fn.jobstart({ "graphify", target }, {
         cwd = vim.fn.getcwd(),
+        term = true,
     })
+    if job_id <= 0 then
+        vim.notify("Не удалось запустить `graphify`.", vim.log.levels.ERROR)
+        return
+    end
     vim.cmd("startinsert")
 end
 
@@ -70,8 +76,12 @@ map("n", "<leader>ag", function() graphify(".") end, "AI: Graphify текущи�
 
 map("i", "jk", "<Esc>", "Выйти из режима вставки")
 
-map("n", "<leader>dn", vim.diagnostic.goto_next, "Следующая диагностика")
-map("n", "<leader>dp", vim.diagnostic.goto_prev, "Предыдущая диагностика")
+map("n", "<leader>dn", function()
+    vim.diagnostic.jump({ count = 1, float = true })
+end, "Следующая диагностика")
+map("n", "<leader>dp", function()
+    vim.diagnostic.jump({ count = -1, float = true })
+end, "Предыдущая диагностика")
 map("n", "<leader>dd", vim.diagnostic.open_float, "Диагностика строки")
 map("n", "<leader>lt", hover_translator.translate, "LSP: перевести hover")
 

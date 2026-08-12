@@ -20,9 +20,9 @@ return {
             spec = {
                 { "<leader>a", group = "AI" },
                 { "<leader>b", group = "Буферы" },
-                { "<leader>c", group = "Cargo/Crates" },
+                { "<leader>c", group = "Код/Crates" },
                 { "<leader>d", group = "Диагностика/Отладка" },
-                { "<leader>f", group = "Поиск/Форматирование" },
+                { "<leader>f", group = "Поиск" },
                 { "<leader>G", group = "Go" },
                 { "<leader>g", group = "Git" },
                 { "<leader>gd", group = "Git diff" },
@@ -32,7 +32,7 @@ return {
                 { "<leader>l", group = "LSP" },
                 { "<leader>p", group = "Пакеты" },
                 { "<leader>r", group = "Rust/Runner" },
-                { "<leader>t", group = "Терминал/Тесты/Заметки" },
+                { "<leader>t", group = "Терминал/Тесты" },
                 { "<leader>u", group = "Интерфейс" },
                 { "<leader>x", group = "Trouble/Списки" },
             },
@@ -148,36 +148,9 @@ return {
         config = function()
             local ui = require("config.ui")
             local notify = require("notify")
-            local bg = ui.current().float_bg
-            notify.setup({
-                timeout = 2500,
-                background_colour = bg == "NONE" and "#1e1e2e" or bg,
-                render = "wrapped-compact",
-                stages = "slide",
-            })
+            notify.setup(ui.notify_options())
             vim.notify = notify
         end,
-    },
-
-    -- --------------------------------------------------------
-    -- UI для vim.ui.select/input (лучше интерфейс команд/меню)
-    -- Hotkeys/commands: используется автоматически через vim.ui.select/input
-    -- --------------------------------------------------------
-    {
-        "stevearc/dressing.nvim",
-        event = "VeryLazy",
-        opts = {
-            input = {
-                border = "rounded",
-                relative = "cursor",
-            },
-            select = {
-                backend = { "telescope", "builtin" },
-                builtin = {
-                    border = "rounded",
-                },
-            },
-        },
     },
 
     -- --------------------------------------------------------
@@ -237,40 +210,31 @@ return {
         "nvim-lualine/lualine.nvim",
         dependencies = {
             "nvim-tree/nvim-web-devicons",
-            -- CapsDetect обновляет vim.g.caps_state, чтобы lualine мог показывать Caps Lock только когда он включён.
+            -- Lualine сам обновляется раз в секунду, отдельный 100-мс polling CapsDetect не нужен.
             {
                 "nikita-edel/capsdetect.nvim",
                 config = function()
                     local capsdetect = require("capsdetect")
-
-                    -- Отключаем встроенное floating-окно плагина: индикатор нужен только в statusline.
                     capsdetect.stop()
                     capsdetect.setup({
                         schedule = {
-                            update_global = true,
-                            -- Принудительно обновляем lualine после изменения состояния Caps Lock.
-                            callback = function()
-                                local ok, lualine = pcall(require, "lualine")
-                                if ok then
-                                    pcall(lualine.refresh, {
-                                        place = { "statusline" },
-                                        scope = "tabpage",
-                                    })
-                                end
-                            end,
+                            dont_schedule = true,
+                            update_global = false,
                         },
                         indicator = {
                             use_indicator = false,
                         },
                     })
+                    capsdetect.stop()
                 end,
             },
         },
         event = "VimEnter",
         config = function()
             -- Компонент возвращает пустую строку, поэтому при выключенном Caps Lock место не резервируется.
+            local capsdetect = require("capsdetect")
             local capslock = function()
-                return vim.g.caps_state and "󰘲 CAPS" or ""
+                return capsdetect.get_caps_state() and "󰘲 CAPS" or ""
             end
 
             require("lualine").setup({
@@ -290,8 +254,7 @@ return {
                         },
                     },
                     lualine_x = {
-                        -- Условный индикатор Caps Lock использует текущую тему lualine без переопределения цветов.
-                        { capslock, cond = function() return vim.g.caps_state == true end },
+                        capslock,
                         "diagnostics",
                         "encoding",
                         "filetype",
@@ -559,10 +522,11 @@ return {
     },
     {
         "nvim-telescope/telescope-fzf-native.nvim",
+        lazy = true,
         enabled = function()
             return vim.fn.executable("make") == 1
         end,
         build = "make", -- нужен make (base-devel на Arch)
     },
-    { "nvim-telescope/telescope-ui-select.nvim" },
+    { "nvim-telescope/telescope-ui-select.nvim", lazy = true },
 }

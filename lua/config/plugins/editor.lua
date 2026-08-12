@@ -17,10 +17,6 @@ return {
         "nvim-treesitter/nvim-treesitter",
         build = ":TSUpdate",
         lazy = false,
-        dependencies = {
-            "williamboman/mason.nvim",
-            "HiPhish/rainbow-delimiters.nvim",
-        },
         config = function()
             local languages = {
                 "rust",
@@ -281,7 +277,7 @@ return {
         "sindrets/diffview.nvim",
         cmd = { "DiffviewOpen", "DiffviewClose", "DiffviewFileHistory" },
         keys = {
-            { "<leader>gd", "<cmd>DiffviewOpen<cr>", desc = "Git: diff workspace" },
+            { "<leader>gdw", "<cmd>DiffviewOpen<cr>", desc = "Git: diff workspace" },
             { "<leader>gds", "<cmd>DiffviewOpen --staged<cr>", desc = "Git: diff staged" },
             { "<leader>gdm", diffview_open_upstream, desc = "Git: diff branch upstream" },
             { "<leader>gdf", "<cmd>DiffviewFileHistory %<cr>", desc = "Git: история файла" },
@@ -293,32 +289,6 @@ return {
             view = {
                 default = { layout = "diff2_horizontal" },
                 merge_tool = { layout = "diff3_horizontal" },
-            },
-        },
-    },
-
-    -- --------------------------------------------------------
-    -- Neogit: IDE-подобный git UI. Основной git UI в этом конфиге - LazyGit.
-    -- --------------------------------------------------------
-    {
-        "NeogitOrg/neogit",
-        cmd = "Neogit",
-        dependencies = {
-            "nvim-lua/plenary.nvim",
-            "sindrets/diffview.nvim",
-        },
-        keys = {
-            { "<leader>gN", "<cmd>Neogit kind=split<cr>", desc = "Git: Neogit status" },
-        },
-        opts = {
-            kind = "split",
-            integrations = {
-                diffview = true,
-            },
-            signs = {
-                section = { "", "" },
-                item = { "", "" },
-                hunk = { "", "" },
             },
         },
     },
@@ -367,7 +337,8 @@ return {
     -- Hotkeys: <leader>gw/<leader>gW
     -- --------------------------------------------------------
     {
-        "ThePrimeagen/git-worktree.nvim",
+        "polarmutex/git-worktree.nvim",
+        version = "^2",
         dependencies = {
             "nvim-lua/plenary.nvim",
             "nvim-telescope/telescope.nvim",
@@ -385,10 +356,13 @@ return {
             },
         },
         config = function()
-            require("git-worktree").setup()
-            pcall(function()
-                require("telescope").load_extension("git_worktree")
+            local hooks = require("git-worktree.hooks")
+            local config = require("git-worktree.config")
+            hooks.register(hooks.type.SWITCH, hooks.builtins.update_current_buffer_on_switch)
+            hooks.register(hooks.type.DELETE, function()
+                vim.cmd(config.update_on_change_command)
             end)
+            require("telescope").load_extension("git_worktree")
         end,
     },
 
@@ -410,17 +384,6 @@ return {
             { "<leader>gr", "<cmd>Octo review start<cr>", desc = "GitHub: начать review" },
         },
         opts = {},
-    },
-
-    -- --------------------------------------------------------
-    -- Комментарии: gc (line), gcip (block) и т.п.
-    -- --------------------------------------------------------
-    {
-        "numToStr/Comment.nvim",
-        event = "VeryLazy",
-        config = function()
-            require("Comment").setup()
-        end,
     },
 
     -- --------------------------------------------------------
@@ -511,16 +474,15 @@ return {
 
     -- --------------------------------------------------------
     -- Toggleterm: быстрый терминал внутри Neovim
-    -- Hotkeys: <leader>at/<leader>tg/<leader>tf
+    -- Hotkeys: <leader>tg/<leader>th
     -- --------------------------------------------------------
     {
         "akinsho/toggleterm.nvim",
         version = "*",
         cmd = { "ToggleTerm", "TermExec" },
         keys = {
-            { "<leader>at", "<cmd>ToggleTerm<cr>", desc = "Показать/скрыть терминал" },
             { "<leader>tg", "<cmd>ToggleTerm direction=float<cr>", desc = "Терминал (float)" },
-            { "<leader>tf", "<cmd>ToggleTerm direction=horizontal<cr>", desc = "Терминал (горизонтальный)" },
+            { "<leader>th", "<cmd>ToggleTerm direction=horizontal<cr>", desc = "Терминал (горизонтальный)" },
         },
         opts = {
             open_mapping = nil,

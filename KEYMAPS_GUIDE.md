@@ -68,16 +68,15 @@
 | Клавиша | Что делает |
 |---|---|
 | `gd` | Перейти к определению |
+| `gD` | Перейти к объявлению |
+| `gi` | Перейти к реализации |
 | `gr` | Показать использования (references) |
+| `gy` | Перейти к определению типа |
 | `K` | Hover-документация |
-| `<leader>rn` | Переименовать символ |
-| `<leader>ca` | Code action |
 | `<leader>uh` | Вкл/выкл inlay hints |
-| `<leader>lt` | Перевести открытый LSP hover на RU |
-| `<leader>ld` | Preview definitions без прыжка (Glance) |
-| `<leader>lR` | Preview references без прыжка (Glance) |
-| `<leader>ly` | Preview type definitions (Glance) |
-| `<leader>lm` | Preview implementations (Glance) |
+| `<leader>lt` | Запросить LSP hover и открыть его перевод на RU |
+| `<leader>ls` | Символы текущего документа |
+| `<leader>lS` | Символы workspace |
 | `<leader>lf` | LSP finder: type/reference/implementation/definition (Lspsaga) |
 | `<leader>lp` | Peek definition (Lspsaga) |
 | `<leader>lP` | Peek type definition (Lspsaga) |
@@ -86,15 +85,10 @@
 | `<leader>ln` | Rename (Lspsaga) |
 | `<leader>lc` | Incoming calls (Lspsaga) |
 | `<leader>lC` | Outgoing calls (Lspsaga) |
-| `<leader>lI` | Incoming call tree (Calltree) |
-| `<leader>lO` | Outgoing call tree (Calltree) |
-| `<leader>lT` | Показать/скрыть Calltree panel |
 
 ### Rust-специфично
 | Клавиша | Что делает |
 |---|---|
-| `<leader>rh` | Hover docs (Rust) |
-| `<leader>ra` | Code action (Rust) |
 | `<leader>rr` | Rust runnables |
 | `<leader>rd` | Rust debuggables |
 
@@ -164,7 +158,6 @@
 |---|---|
 | `<leader>gg` | Открыть LazyGit |
 | `<leader>gf` | Открыть LazyGit для текущего файла |
-| `<leader>gN` | Открыть Neogit status |
 
 ### Gitsigns / hunks
 | Клавиша | Что делает |
@@ -186,7 +179,7 @@
 ### Diffview
 | Клавиша | Что делает |
 |---|---|
-| `<leader>gd` | Открыть git diff view |
+| `<leader>gdw` | Открыть git diff workspace |
 | `<leader>gds` | Открыть diff staged changes |
 | `<leader>gdm` | Diff текущей ветки с upstream |
 | `<leader>gdf` | История текущего файла |
@@ -231,14 +224,13 @@
 ### Терминал
 | Клавиша | Что делает |
 |---|---|
-| `<leader>at` | Открыть/закрыть терминал |
 | `<leader>tg` | Float-терминал |
-| `<leader>tf` | Горизонтальный терминал |
+| `<leader>th` | Горизонтальный терминал |
 
 ### Форматирование и пакеты
 | Клавиша | Что делает |
 |---|---|
-| `<leader>f` | Форматировать текущий файл |
+| `<leader>cf` | Форматировать текущий файл |
 | `<leader>pm` | Открыть Mason (LSP/инструменты) |
 
 ### Переводчик
@@ -288,7 +280,6 @@
 
 | Клавиша | Что делает |
 |---|---|
-| `<leader>cp` | Popup по crate |
 | `<leader>ch` | Popup по crate |
 | `<leader>cd` | Открыть docs.rs для crate под курсором |
 | `<leader>cu` | Обновить текущий crate |
@@ -302,25 +293,48 @@
 ### Rust tooling (без отдельных хоткеев)
 - `rustaceanvim`: основной Rust LSP/IDE.
 - `rustowl`: подсветка ownership/lifetimes.
-- `ferris.nvim`: дополнительные rust-analyzer utilities.
 - `overseer.nvim`: task runner в стиле IDE.
+- Rust-тесты Neotest используют встроенный адаптер `rustaceanvim`.
+
+## 11. Go
+
+| Клавиша | Что делает |
+|---|---|
+| `<leader>Gt` | Запустить `go test ./...` |
+| `<leader>Gn` | Тест текущей функции |
+| `<leader>Gf` | Тест текущего файла |
+| `<leader>Gp` | Тест текущего пакета |
+| `<leader>Gb` | Запустить benchmarks |
+| `<leader>Gc` | Показать coverage |
+| `<leader>GG` | Выполнить `go generate` |
+| `<leader>Gv` | Выполнить `go vet` |
+| `<leader>Gm` | Выполнить `go mod tidy` |
+| `<leader>Gi` | Организовать imports |
+| `<leader>Gs` | Заполнить struct |
+| `<leader>GI` | Реализовать interface |
+| `<leader>Ga` | Добавить struct tags |
+| `<leader>GA` | Удалить struct tags |
+
+Для rename и inlay hints используются общие LSP-команды `<leader>ln` и `<leader>uh`.
 
 ---
 
-## 11. Отладка (DAP)
+## 12. Отладка (DAP)
 
 | Клавиша | Что делает |
 |---|---|
 | `<leader>db` | Toggle breakpoint |
+| `<leader>dB` | Условный breakpoint |
 | `<leader>dc` | Continue |
 | `<leader>di` | Step into |
 | `<leader>do` | Step over |
 | `<leader>dO` | Step out |
+| `<leader>dr` | Показать/скрыть DAP REPL |
 | `<leader>du` | Показать/скрыть DAP UI |
 
 ---
 
-## 12. Тесты (Neotest)
+## 13. Тесты (Neotest)
 
 | Клавиша | Что делает |
 |---|---|
@@ -331,7 +345,7 @@
 
 ---
 
-## 13. Trouble-панель
+## 14. Trouble-панель
 
 | Клавиша | Что делает |
 |---|---|
@@ -343,7 +357,7 @@
 
 ---
 
-## 14. Автодополнение (nvim-cmp)
+## 15. Автодополнение и комментарии
 
 Работает в insert-mode:
 
@@ -353,21 +367,23 @@
 | `<Tab>` | Следующий completion / следующий snippet placeholder |
 | `<S-Tab>` | Предыдущий completion / предыдущий snippet placeholder |
 
+Для комментариев используются встроенные команды Neovim: `gcc` комментирует строку, `gc` работает как оператор или с выделением.
+
 ---
 
-## 15. Практический сценарий для новичка
+## 16. Практический сценарий для новичка
 
 1. `Space ff` — открой файл.
 2. `i` — войди в режим ввода.
 3. Печатай код, `jk` — выйти в normal mode.
-4. `Space f` — форматнуть файл.
+4. `Space cf` — форматнуть файл.
 5. `gd` / `K` — перейти к определению и посмотреть документацию.
 6. `Space dn` / `Space dd` — пройтись по ошибкам.
 7. `Space w` — сохранить.
 
 ---
 
-## 16. Если не срабатывает клавиша
+## 17. Если не срабатывает клавиша
 
 | Проблема | Что проверить |
 |---|---|
@@ -378,6 +394,16 @@
 | Нет иконок | Нужен Nerd Font в терминале |
 
 ---
+
+## 18. Проверка конфликтов keymap
+
+После изменения mappings запустите:
+
+```bash
+nvim -n --headless -u NONE -l scripts/check-keymaps.lua
+```
+
+Команда завершится с ошибкой и покажет обе регистрации, если одна комбинация назначена повторно в том же режиме и scope.
 
 ## 17. Полезные команды Neovim
 

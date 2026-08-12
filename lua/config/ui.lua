@@ -3,6 +3,7 @@ local M = {}
 M.presets = {
     glass = {
         transparent = true,
+        normal_bg = "NONE",
         winblend = 10,
         pumblend = 10,
         float_bg = "NONE",
@@ -15,6 +16,7 @@ M.presets = {
     },
     solid = {
         transparent = false,
+        normal_bg = "#1e1e2e",
         winblend = 0,
         pumblend = 0,
         float_bg = "#1e1e2e",
@@ -27,6 +29,7 @@ M.presets = {
     },
     high_contrast = {
         transparent = false,
+        normal_bg = "#11111b",
         winblend = 0,
         pumblend = 0,
         float_bg = "#11111b",
@@ -65,6 +68,9 @@ end
 
 function M.apply_highlights()
     local preset = M.current()
+    vim.api.nvim_set_hl(0, "Normal", { bg = preset.normal_bg })
+    vim.api.nvim_set_hl(0, "NormalNC", { bg = preset.normal_bg })
+    vim.api.nvim_set_hl(0, "SignColumn", { bg = preset.normal_bg })
     vim.api.nvim_set_hl(0, "NormalFloat", { bg = preset.float_bg })
     vim.api.nvim_set_hl(0, "FloatBorder", { fg = preset.float_border, bg = preset.float_bg })
     vim.api.nvim_set_hl(0, "CursorLine", { bg = preset.cursorline })
@@ -82,10 +88,23 @@ function M.apply_highlights()
     vim.api.nvim_set_hl(0, "RainbowDelimiterCyan", { fg = "#94e2d5", nocombine = true })
 end
 
+function M.notify_options()
+    local bg = M.current().float_bg
+    return {
+        timeout = 2500,
+        background_colour = bg == "NONE" and "#1e1e2e" or bg,
+        render = "wrapped-compact",
+        stages = "slide",
+    }
+end
+
 function M.reload_colors()
     M.apply_options()
     pcall(vim.cmd.colorscheme, "catppuccin")
     M.apply_highlights()
+    if package.loaded.notify then
+        require("notify").setup(M.notify_options())
+    end
 end
 
 function M.set_preset(name)

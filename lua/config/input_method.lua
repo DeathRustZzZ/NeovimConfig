@@ -1,43 +1,41 @@
 local M = {}
 
 local state = {
-    enabled = false,
     qdbus = nil,
     english_index = nil,
     russian_indices = {},
     restore_index = nil,
+    transition = 0,
 }
 
-local function command_output(cmd, timeout_ms)
-    -- Используем vim.system без shell, чтобы D-Bus вызовы были быстрыми и безопасными для автокоманд.
+local function command_output(cmd, callback)
     if vim.system then
-        local ok, obj = pcall(vim.system, cmd, { text = true })
-        if not ok then
-            return nil
-        end
-
-        local result = obj:wait(timeout_ms or 100)
-        if not result or result.code == nil then
-            pcall(function()
-                obj:kill(15)
+        local ok = pcall(vim.system, cmd, { text = true }, function(result)
+            vim.schedule(function()
+                callback(result.code == 0 and (result.stdout or "") or nil)
             end)
-            return nil
+        end)
+        if not ok then
+            vim.schedule(function() callback(nil) end)
         end
-
-        if result.code ~= 0 then
-            return nil
-        end
-
-        return result.stdout or ""
+        return
     end
 
-    -- Fallback для старых версий Neovim, где vim.system ещё недоступен.
-    local output = vim.fn.system(cmd)
-    if vim.v.shell_error ~= 0 then
-        return nil
+    local stdout = {}
+    local job_id = vim.fn.jobstart(cmd, {
+        stdout_buffered = true,
+        on_stdout = function(_, data)
+            stdout = data or {}
+        end,
+        on_exit = function(_, exit_code)
+            vim.schedule(function()
+                callback(exit_code == 0 and table.concat(stdout, "\n") or nil)
+            end)
+        end,
+    })
+    if job_id <= 0 then
+        vim.schedule(function() callback(nil) end)
     end
-
-    return output
 end
 
 local function split_csv(value)
@@ -48,9 +46,9 @@ local function split_csv(value)
     return result
 end
 
-local function detect_layouts()
+local function detect_layouts(callback)
     -- KDE хранит порядок XKB-раскладок в kxkbrc; D-Bus setLayout работает с нулевыми индексами.
-    local output = command_output({
+    command_output({
         "kreadconfig6",
         "--file",
         "kxkbrc",
@@ -58,34 +56,33 @@ local function detect_layouts()
         "Layout",
         "--key",
         "LayoutList",
-    })
+    }, function(output)
+        local layouts = split_csv(output)
+        state.english_index = nil
+        state.russian_indices = {}
 
-    local layouts = split_csv(output)
-    if #layouts == 0 then
-        return false
-    end
-
-    for index, layout in ipairs(layouts) do
-        local dbus_index = index - 1
-        if layout == "us" then
-            state.english_index = dbus_index
-        elseif layout == "ru" then
-            state.russian_indices[dbus_index] = true
+        for index, layout in ipairs(layouts) do
+            local dbus_index = index - 1
+            if layout == "us" then
+                state.english_index = dbus_index
+            elseif layout == "ru" then
+                state.russian_indices[dbus_index] = true
+            end
         end
-    end
 
-    return state.english_index ~= nil and next(state.russian_indices) ~= nil
+        callback(state.english_index ~= nil and next(state.russian_indices) ~= nil)
+    end)
 end
 
-local function get_layout()
-    local output = command_output({
+local function get_layout(callback)
+    command_output({
         state.qdbus,
         "org.kde.keyboard",
         "/Layouts",
         "org.kde.KeyboardLayouts.getLayout",
-    })
-
-    return output and tonumber(vim.trim(output)) or nil
+    }, function(output)
+        callback(output and tonumber(vim.trim(output)) or nil)
+    end)
 end
 
 local function set_layout(index)
@@ -100,16 +97,25 @@ local function set_layout(index)
         "/Layouts",
         "org.kde.KeyboardLayouts.setLayout",
         tostring(index),
-    })
+    }, function() end)
 end
 
 local function leave_input_mode()
-    local current_index = get_layout()
-    state.restore_index = state.russian_indices[current_index] and current_index or nil
-    set_layout(state.english_index)
+    state.transition = state.transition + 1
+    local transition = state.transition
+
+    get_layout(function(current_index)
+        if transition ~= state.transition then
+            return
+        end
+        state.restore_index = state.russian_indices[current_index] and current_index or nil
+        set_layout(state.english_index)
+    end)
 end
 
 local function enter_input_mode()
+    -- Инвалидируем незавершённый D-Bus запрос выхода из Insert Mode.
+    state.transition = state.transition + 1
     if state.restore_index then
         set_layout(state.restore_index)
     end
@@ -120,19 +126,7 @@ local function is_input_mode(mode)
     return mode:sub(1, 1) == "i" or mode:sub(1, 1) == "R"
 end
 
-function M.setup()
-    -- В этой системе раскладкой управляет KDE/XKB, а не fcitx5 или ibus.
-    if not tostring(vim.env.XDG_CURRENT_DESKTOP or ""):find("KDE", 1, true) then
-        return
-    end
-
-    state.qdbus = vim.fn.exepath("qdbus6")
-    if state.qdbus == "" or vim.fn.executable("kreadconfig6") ~= 1 or not detect_layouts() then
-        return
-    end
-
-    state.enabled = true
-
+local function enable_autocmds()
     local group = vim.api.nvim_create_augroup("UserInputMethodLayout", { clear = true })
     vim.api.nvim_create_autocmd("ModeChanged", {
         group = group,
@@ -153,6 +147,24 @@ function M.setup()
 
     -- При старте Neovim находится в Normal Mode, поэтому сразу приводим раскладку к английской.
     set_layout(state.english_index)
+end
+
+function M.setup()
+    -- В этой системе раскладкой управляет KDE/XKB, а не fcitx5 или ibus.
+    if not tostring(vim.env.XDG_CURRENT_DESKTOP or ""):find("KDE", 1, true) then
+        return
+    end
+
+    state.qdbus = vim.fn.exepath("qdbus6")
+    if state.qdbus == "" or vim.fn.executable("kreadconfig6") ~= 1 then
+        return
+    end
+
+    detect_layouts(function(found)
+        if found then
+            enable_autocmds()
+        end
+    end)
 end
 
 return M

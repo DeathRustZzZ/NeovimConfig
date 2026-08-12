@@ -32,36 +32,30 @@ function M.translate(source_text, opts)
     local on_success = opts.on_success
     local on_error = opts.on_error
 
-    local job_id = vim.fn.jobstart({ "trans", "-brief", ":" .. target, "--", text }, {
-        stdout_buffered = true,
-        stderr_buffered = true,
-        on_stdout = function(_, data)
-            local out = trim(table.concat(data or {}, "\n"))
-            if out == "" or type(on_success) ~= "function" then
-                return
-            end
-
-            vim.schedule(function()
-                on_success(out, text)
-            end)
-        end,
-        on_stderr = function(_, data)
-            local err = trim(table.concat(data or {}, "\n"))
-            if err == "" then
-                return
-            end
-
-            vim.schedule(function()
-                if type(on_error) == "function" then
-                    on_error(err)
-                else
-                    vim.notify("trans error: " .. err, vim.log.levels.ERROR)
+    local ok = pcall(vim.system, { "trans", "-brief", ":" .. target, "--", text }, { text = true }, function(result)
+        vim.schedule(function()
+            local translated = trim(result.stdout)
+            if result.code == 0 and translated ~= "" then
+                if type(on_success) == "function" then
+                    on_success(translated, text)
                 end
-            end)
-        end,
-    })
+                return
+            end
 
-    if job_id <= 0 then
+            local err = trim(result.stderr)
+            if err == "" then
+                err = result.code == 0 and "переводчик вернул пустой результат"
+                    or ("процесс завершился с кодом " .. tostring(result.code))
+            end
+            if type(on_error) == "function" then
+                on_error(err)
+            else
+                vim.notify("trans error: " .. err, vim.log.levels.ERROR)
+            end
+        end)
+    end)
+
+    if not ok then
         vim.notify("Не удалось запустить команду `trans`.", vim.log.levels.ERROR)
         return false
     end

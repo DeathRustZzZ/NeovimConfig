@@ -1,6 +1,6 @@
 # Перенос моего Neovim-конфига с Arch Linux на macOS M1
 
-Этот конфиг можно перенести на Mac почти без переделок. Основной путь конфига такой же:
+Этот конфиг рассчитан на Neovim 0.12+ и переносится на Mac почти без переделок. Основной путь конфига такой же:
 
 ```bash
 ~/.config/nvim
@@ -52,7 +52,7 @@ brew install neovim git ripgrep fd lazygit make
 - `ripgrep` нужен для `Telescope live_grep`
 - `fd` полезен для быстрого поиска файлов
 - `make` нужен для сборки `telescope-fzf-native.nvim`
-- `lazygit` нужен только для хоткея `<leader>lg`
+- `lazygit` нужен только для хоткея `<leader>gg`
 
 ## 3. Шрифт
 
@@ -79,7 +79,8 @@ brew install --cask font-jetbrains-mono-nerd-font
 - `rustfmt`
 - `clippy`
 - `codelldb`
-- `neotest-rust`
+
+Rust-тесты используют адаптер из `rustaceanvim`, отдельный `neotest-rust` не нужен. `rust-analyzer` лучше устанавливать через `rustup`, чтобы его версия соответствовала Rust toolchain:
 
 Поставь `rustup`:
 
@@ -88,6 +89,7 @@ brew install rustup-init
 rustup-init
 source ~/.cargo/env
 rustup component add rustfmt clippy
+rustup component add rust-analyzer
 ```
 
 После этого внутри Neovim можно открыть:
@@ -96,15 +98,14 @@ rustup component add rustfmt clippy
 :Mason
 ```
 
-И установить/проверить:
+И установить/проверить остальные инструменты:
 
-- `rust-analyzer`
 - `codelldb`
 - `taplo`
 - `stylua`
 - `lua_ls`
 
-Часть из них у тебя уже описана в `mason-tool-installer.nvim` и `mason-lspconfig.nvim`.
+`codelldb` и CLI-инструменты описаны в `mason-tool-installer.nvim`, а LSP-серверы — в `mason-lspconfig.nvim`.
 
 ## 5. Опциональные утилиты
 
@@ -165,6 +166,7 @@ nvim
 :checkhealth
 :Lazy
 :Mason
+:MasonToolsInstall
 ```
 
 ## 8. Возможные отличия на macOS
@@ -197,7 +199,7 @@ vim.opt.clipboard = "unnamedplus"
 2. Установить Homebrew.
 3. Поставить `neovim git ripgrep fd lazygit make`.
 4. Поставить `JetBrainsMono Nerd Font`.
-5. Поставить `rustup`, затем `rustfmt` и `clippy`.
+5. Поставить `rustup`, затем `rustfmt`, `clippy` и `rust-analyzer`.
 6. Запустить `nvim`.
 7. Проверить `:checkhealth`, `:Lazy`, `:Mason`.
 
@@ -207,7 +209,7 @@ vim.opt.clipboard = "unnamedplus"
 brew install neovim git ripgrep fd lazygit make rustup-init translate-shell
 rustup-init
 source ~/.cargo/env
-rustup component add rustfmt clippy
+rustup component add rustfmt clippy rust-analyzer
 mkdir -p ~/.config
 ```
 

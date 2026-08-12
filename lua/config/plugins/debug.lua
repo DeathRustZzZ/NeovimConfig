@@ -9,19 +9,6 @@ return {
             local path = vim.fn.exepath("rustowl")
             return path ~= nil and path ~= ""
         end,
-        enabled = function()
-            local path = vim.fn.exepath("rustowl")
-            return path ~= nil and path ~= ""
-        end,
-    },
-
-    -- --------------------------------------------------------
-    -- Ferris: дополнительные rust-analyzer utilities
-    -- --------------------------------------------------------
-    {
-        "vxpm/ferris.nvim",
-        ft = { "rust" },
-        opts = {},
     },
 
     -- --------------------------------------------------------
@@ -43,41 +30,6 @@ return {
             { "<leader>dO", function() require("dap").step_out() end, desc = "DAP: шаг наружу" },
             { "<leader>dr", function() require("dap").repl.toggle() end, desc = "DAP: REPL" },
         },
-        config = function()
-            local dap = require("dap")
-            local ok_registry, registry = pcall(require, "mason-registry")
-            local ok_mason_settings, mason_settings = pcall(require, "mason.settings")
-
-            if ok_registry and ok_mason_settings and registry.has_package("codelldb") then
-                local codelldb_pkg = registry.get_package("codelldb")
-                if not codelldb_pkg:is_installed() then return end
-
-                local extension_path = mason_settings.current.install_root_dir .. "/packages/codelldb/extension/"
-                local codelldb_path = extension_path .. "adapter/codelldb"
-
-                dap.adapters.codelldb = {
-                    type = "server",
-                    port = "${port}",
-                    executable = {
-                        command = codelldb_path,
-                        args = { "--port", "${port}" },
-                    },
-                }
-
-                dap.configurations.rust = {
-                    {
-                        name = "Launch file",
-                        type = "codelldb",
-                        request = "launch",
-                        program = function()
-                            return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/target/debug/", "file")
-                        end,
-                        cwd = "${workspaceFolder}",
-                        stopOnEntry = false,
-                    },
-                }
-            end
-        end,
     },
 
     -- --------------------------------------------------------
@@ -136,7 +88,7 @@ return {
 
     -- --------------------------------------------------------
     -- Neotest: запуск и просмотр тестов
-    -- + neotest-rust: адаптер под cargo test
+    -- Rust adapter берём из rustaceanvim, чтобы не дублировать интеграцию с rust-analyzer.
     -- Hotkeys: <leader>tn/<leader>tf/<leader>ts/<leader>to
     -- --------------------------------------------------------
     {
@@ -145,7 +97,6 @@ return {
             "nvim-neotest/nvim-nio",
             "nvim-lua/plenary.nvim",
             "nvim-treesitter/nvim-treesitter",
-            "rouge8/neotest-rust",
             "fredrikaverpil/neotest-golang",
         },
         keys = {
@@ -173,7 +124,7 @@ return {
         config = function()
             require("neotest").setup({
                 adapters = {
-                    require("neotest-rust")({}),
+                    require("rustaceanvim.neotest"),
                     require("neotest-golang")({
                         go_test_args = { "-v", "-race", "-count=1", "-timeout=60s" },
                         dap_go_enabled = true,
