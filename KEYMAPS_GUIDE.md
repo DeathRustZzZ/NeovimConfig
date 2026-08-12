@@ -45,8 +45,11 @@
 | Клавиша | Что делает | Режим |
 |---|---|---|
 | `<leader>w` | Сохранить файл | `n` |
+| `<M-s>` | Сохранить файл (Cmd+S в текущем терминале) | `n` `i` `x` |
 | `<leader>q` | Закрыть текущее окно | `n` |
 | `jk` | Выйти из insert mode | `i` |
+| `<M-h>` `<M-j>` `<M-k>` `<M-l>` | Перейти между окнами (Cmd+H/J/K/L) | `n` |
+| `<M-h>` `<M-j>` `<M-k>` `<M-l>` | Перейти между окнами из терминала (Cmd+H/J/K/L) | `t` |
 | `<C-h>` `<C-j>` `<C-k>` `<C-l>` | Перейти между окнами | `n` |
 | `<C-h>` `<C-j>` `<C-k>` `<C-l>` | Перейти между окнами из терминала | `t` |
 
@@ -70,6 +73,7 @@
 | `<leader>rn` | Переименовать символ |
 | `<leader>ca` | Code action |
 | `<leader>uh` | Вкл/выкл inlay hints |
+| `<leader>lt` | Перевести открытый LSP hover на RU |
 | `<leader>ld` | Preview definitions без прыжка (Glance) |
 | `<leader>lR` | Preview references без прыжка (Glance) |
 | `<leader>ly` | Preview type definitions (Glance) |
@@ -155,43 +159,57 @@
 
 ## 7. Git и код-ревью
 
-### Gitsigns
+### Основной Git UI
 | Клавиша | Что делает |
 |---|---|
-| `<leader>hs` | Stage hunk |
-| `<leader>hr` | Reset hunk |
-| `<leader>hp` | Preview hunk |
-| `<leader>hb` | Blame current line |
+| `<leader>gg` | Открыть LazyGit |
+| `<leader>gf` | Открыть LazyGit для текущего файла |
+| `<leader>gN` | Открыть Neogit status |
+
+### Gitsigns / hunks
+| Клавиша | Что делает |
+|---|---|
+| `]h` | Следующий hunk |
+| `[h` | Предыдущий hunk |
+| `<leader>ghs` | Stage hunk / выделенные hunks |
+| `<leader>ghr` | Reset hunk / выделенные hunks |
+| `<leader>ghS` | Stage весь буфер |
+| `<leader>ghR` | Reset весь буфер |
+| `<leader>ghu` | Undo stage hunk |
+| `<leader>ghp` | Preview hunk |
+| `<leader>ghb` | Blame current line |
+| `<leader>ghB` | Вкл/выкл inline blame |
+| `<leader>ghd` | Diff текущего файла |
+| `<leader>ghD` | Diff текущего файла с `~` |
+| `<leader>ghq` | Отправить hunks в quickfix |
 
 ### Diffview
 | Клавиша | Что делает |
 |---|---|
 | `<leader>gd` | Открыть git diff view |
+| `<leader>gds` | Открыть diff staged changes |
+| `<leader>gdm` | Diff текущей ветки с upstream |
+| `<leader>gdf` | История текущего файла |
+| `<leader>gdh` | История проекта |
 | `<leader>gD` | Закрыть git diff view |
-| `<leader>gH` | История текущего файла |
 
-### Neogit (как в IDE)
+### Telescope / Neo-tree Git
 | Клавиша | Что делает |
 |---|---|
-| `<leader>gg` | Открыть Git Status (staging, commit, push, pull, stash, rebase) |
-| `<leader>gc` | Быстрый вход в commit flow |
-| `<leader>gp` | Push |
-| `<leader>gP` | Pull |
-| `<leader>gl` | Log |
-
-### LazyGit
-| Клавиша | Что делает |
-|---|---|
-| `<leader>lg` | Открыть LazyGit в Neovim |
+| `<leader>gs` | Changed files через Telescope |
+| `<leader>gb` | Git branches через Telescope |
+| `<leader>gc` | Git commits через Telescope |
+| `<leader>gC` | Commits текущего файла через Telescope |
+| `<leader>gS` | Git status view в Neo-tree |
 
 ### Git conflicts
 | Клавиша | Что делает |
 |---|---|
-| `<leader>gco` | Принять `ours` |
-| `<leader>gct` | Принять `theirs` |
-| `<leader>gcb` | Принять обе версии |
-| `<leader>gcn` | Следующий конфликт |
-| `<leader>gcp` | Предыдущий конфликт |
+| `<leader>gxo` | Принять `ours` |
+| `<leader>gxt` | Принять `theirs` |
+| `<leader>gxb` | Принять обе версии |
+| `<leader>gxn` | Следующий конфликт |
+| `<leader>gxp` | Предыдущий конфликт |
 
 ### Worktree и GitHub review
 | Клавиша | Что делает |
@@ -241,6 +259,8 @@
 ### Copilot (inline)
 | Клавиша | Что делает | Режим |
 |---|---|---|
+| `<M-g>` | Показать подсказку Copilot (Cmd+G) | `i` |
+| `<M-l>` | Принять подсказку Copilot (Cmd+L) | `i` |
 | `<C-l>` | Принять подсказку Copilot | `i` |
 | `<M-]>` | Следующая подсказка Copilot | `i` |
 | `<M-[>` | Предыдущая подсказка Copilot | `i` |

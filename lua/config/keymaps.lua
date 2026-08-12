@@ -7,6 +7,8 @@ local function copy_whole_buffer_to_clipboard()
 end
 
 local ui = require("config.ui")
+local translator = require("config.translator")
+local hover_translator = require("config.hover_translator")
 
 local function map(mode, lhs, rhs, desc, opts)
     local base = { desc = desc, silent = true }
@@ -29,10 +31,6 @@ local function smart_close()
     local cur = vim.api.nvim_get_current_buf()
     vim.cmd("enew")
     pcall(vim.cmd, "bdelete " .. cur)
-end
-
-local function notify_missing_trans()
-    vim.notify("Команда `trans` не найдена. Установите translate-shell.", vim.log.levels.WARN)
 end
 
 local function graphify(args)
@@ -58,37 +56,10 @@ end, {
     desc = "Построить Graphify knowledge graph для директории",
 })
 
-local function translate_and_notify(source_text, empty_message)
-    local text = source_text:gsub("^%s+", ""):gsub("%s+$", "")
-    if text == "" then
-        vim.notify(empty_message, vim.log.levels.WARN)
-        return
-    end
-
-    if vim.fn.executable("trans") ~= 1 then
-        notify_missing_trans()
-        return
-    end
-
-    vim.fn.jobstart({ "trans", "-brief", ":ru", "--", text }, {
-        stdout_buffered = true,
-        stderr_buffered = true,
-        on_stdout = function(_, data)
-            local out = table.concat(data or {}, "\n"):gsub("%s+$", "")
-            if out ~= "" then
-                vim.notify(text .. " -> " .. out, vim.log.levels.INFO)
-            end
-        end,
-        on_stderr = function(_, data)
-            local err = table.concat(data or {}, "\n"):gsub("%s+$", "")
-            if err ~= "" then
-                vim.notify("trans error: " .. err, vim.log.levels.ERROR)
-            end
-        end,
-    })
-end
-
 map("n", "<leader>w", "<cmd>w<cr>", "Сохранить файл")
+map("n", "<M-s>", "<cmd>w<cr>", "Сохранить файл (Cmd+S)")
+map("i", "<M-s>", "<C-o>:w<cr>", "Сохранить файл (Cmd+S)")
+map("v", "<M-s>", "<Esc><cmd>w<cr>", "Сохранить файл (Cmd+S)")
 map("n", "<C-s>", "<cmd>w<cr>", "Сохранить файл (Ctrl+S)")
 map("i", "<C-s>", "<C-o>:w<cr>", "Сохранить файл (Ctrl+S)")
 map("v", "<C-s>", "<Esc><cmd>w<cr>", "Сохранить файл (Ctrl+S)")
@@ -102,14 +73,15 @@ map("i", "jk", "<Esc>", "Выйти из режима вставки")
 map("n", "<leader>dn", vim.diagnostic.goto_next, "Следующая диагностика")
 map("n", "<leader>dp", vim.diagnostic.goto_prev, "Предыдущая диагностика")
 map("n", "<leader>dd", vim.diagnostic.open_float, "Диагностика строки")
+map("n", "<leader>lt", hover_translator.translate, "LSP: перевести hover")
 
 map("n", "<leader>tr", function()
     local word = vim.fn.expand("<cword>")
-    translate_and_notify(word or "", "Нет слова под курсором")
+    translator.translate_and_notify(word or "", "Нет слова под курсором")
 end, "Перевести слово на русский")
 
 map("n", "<leader>tl", function()
-    translate_and_notify(vim.api.nvim_get_current_line(), "Строка пустая")
+    translator.translate_and_notify(vim.api.nvim_get_current_line(), "Строка пустая")
 end, "Перевести строку на русский")
 
 map("n", "<leader>ut", ui.cycle_preset, "Переключить UI-пресет")
@@ -121,8 +93,16 @@ map("n", "<C-h>", "<C-w>h", "Окно слева")
 map("n", "<C-j>", "<C-w>j", "Окно снизу")
 map("n", "<C-k>", "<C-w>k", "Окно сверху")
 map("n", "<C-l>", "<C-w>l", "Окно справа")
+map("n", "<M-h>", "<C-w>h", "Окно слева (Cmd+H)")
+map("n", "<M-j>", "<C-w>j", "Окно снизу (Cmd+J)")
+map("n", "<M-k>", "<C-w>k", "Окно сверху (Cmd+K)")
+map("n", "<M-l>", "<C-w>l", "Окно справа (Cmd+L)")
 
 map("t", "<C-h>", [[<C-\><C-n><C-w>h]], "Из терминала в окно слева")
 map("t", "<C-j>", [[<C-\><C-n><C-w>j]], "Из терминала в окно снизу")
 map("t", "<C-k>", [[<C-\><C-n><C-w>k]], "Из терминала в окно сверху")
 map("t", "<C-l>", [[<C-\><C-n><C-w>l]], "Из терминала в окно справа")
+map("t", "<M-h>", [[<C-\><C-n><C-w>h]], "Из терминала в окно слева (Cmd+H)")
+map("t", "<M-j>", [[<C-\><C-n><C-w>j]], "Из терминала в окно снизу (Cmd+J)")
+map("t", "<M-k>", [[<C-\><C-n><C-w>k]], "Из терминала в окно сверху (Cmd+K)")
+map("t", "<M-l>", [[<C-\><C-n><C-w>l]], "Из терминала в окно справа (Cmd+L)")

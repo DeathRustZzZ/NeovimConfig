@@ -57,4 +57,17 @@ vim.api.nvim_create_autocmd("VimEnter", {
     end,
 })
 
+local git_group = vim.api.nvim_create_augroup("UserGitEditing", { clear = true })
+vim.api.nvim_create_autocmd("FileType", {
+    group = git_group,
+    pattern = "gitcommit",
+    callback = function()
+        vim.opt_local.spell = true
+        vim.opt_local.wrap = true
+        vim.opt_local.linebreak = true
+        vim.opt_local.textwidth = 72
+        vim.opt_local.colorcolumn = "73"
+    end,
+})
+
 ui.apply_highlights()

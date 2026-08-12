@@ -25,7 +25,10 @@ return {
                 { "<leader>f", group = "Поиск/Форматирование" },
                 { "<leader>G", group = "Go" },
                 { "<leader>g", group = "Git" },
-                { "<leader>h", group = "Harpoon/Hunks" },
+                { "<leader>gd", group = "Git diff" },
+                { "<leader>gh", group = "Git hunks" },
+                { "<leader>gx", group = "Git conflicts" },
+                { "<leader>h", group = "Harpoon" },
                 { "<leader>l", group = "LSP" },
                 { "<leader>p", group = "Пакеты" },
                 { "<leader>r", group = "Rust/Runner" },
@@ -438,6 +441,7 @@ return {
         keys = {
             { "<leader>e", "<cmd>Neotree toggle position=left<cr>", desc = "Показать/скрыть дерево файлов" },
             { "<leader>E", "<cmd>Neotree reveal position=left<cr>", desc = "Показать текущий файл в дереве" },
+            { "<leader>gS", "<cmd>Neotree source=git_status position=left<cr>", desc = "Git: статус файлов" },
         },
         opts = {
             -- Avoid quit warnings when Neo-tree is the last window and there are unsaved buffers.
@@ -530,6 +534,10 @@ return {
             { "<leader>fg", function() require("telescope.builtin").live_grep() end, desc = "Поиск по проекту" },
             { "<leader>fb", function() require("telescope.builtin").buffers() end, desc = "Буферы" },
             { "<leader>fh", function() require("telescope.builtin").help_tags() end, desc = "Справка" },
+            { "<leader>gs", function() require("telescope.builtin").git_status() end, desc = "Git: changed files" },
+            { "<leader>gb", function() require("telescope.builtin").git_branches() end, desc = "Git: branches" },
+            { "<leader>gc", function() require("telescope.builtin").git_commits() end, desc = "Git: commits" },
+            { "<leader>gC", function() require("telescope.builtin").git_bcommits() end, desc = "Git: commits файла" },
         },
         config = function()
             local telescope = require("telescope")

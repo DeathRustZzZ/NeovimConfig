@@ -1,3 +1,13 @@
+local function diffview_open_upstream()
+    local upstream = vim.fn.systemlist({ "git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}" })[1]
+    if vim.v.shell_error ~= 0 or upstream == nil or upstream == "" then
+        vim.notify("Git: у текущей ветки не настроен upstream.", vim.log.levels.WARN)
+        return
+    end
+
+    vim.cmd("DiffviewOpen " .. upstream .. "...HEAD")
+end
+
 return {
     -- --------------------------------------------------------
     -- Treesitter: умная подсветка/отступы
@@ -203,35 +213,92 @@ return {
         "lewis6991/gitsigns.nvim",
         event = { "BufReadPost", "BufNewFile" },
         keys = {
-            -- Lazy.nvim загрузит gitsigns при первом использовании hunk-команд.
-            { "<leader>hs", function() require("gitsigns").stage_hunk() end, desc = "Добавить hunk в индекс" },
-            { "<leader>hr", function() require("gitsigns").reset_hunk() end, desc = "Откатить hunk" },
-            { "<leader>hp", function() require("gitsigns").preview_hunk() end, desc = "Предпросмотр hunk" },
-            { "<leader>hb", function() require("gitsigns").blame_line() end, desc = "Blame строки" },
+            { "]h", function() require("gitsigns").nav_hunk("next") end, desc = "Git: следующий hunk" },
+            { "[h", function() require("gitsigns").nav_hunk("prev") end, desc = "Git: предыдущий hunk" },
+            { "<leader>ghs", function() require("gitsigns").stage_hunk() end, desc = "Git: stage hunk" },
+            { "<leader>ghr", function() require("gitsigns").reset_hunk() end, desc = "Git: reset hunk" },
+            { "<leader>ghS", function() require("gitsigns").stage_buffer() end, desc = "Git: stage buffer" },
+            { "<leader>ghR", function() require("gitsigns").reset_buffer() end, desc = "Git: reset buffer" },
+            { "<leader>ghu", function() require("gitsigns").undo_stage_hunk() end, desc = "Git: undo stage hunk" },
+            { "<leader>ghp", function() require("gitsigns").preview_hunk() end, desc = "Git: preview hunk" },
+            { "<leader>ghb", function() require("gitsigns").blame_line({ full = true }) end, desc = "Git: blame line" },
+            { "<leader>ghB", function() require("gitsigns").toggle_current_line_blame() end, desc = "Git: toggle line blame" },
+            { "<leader>ghd", function() require("gitsigns").diffthis() end, desc = "Git: diff this" },
+            { "<leader>ghD", function() require("gitsigns").diffthis("~") end, desc = "Git: diff this ~" },
+            { "<leader>ghq", function() require("gitsigns").setqflist("all") end, desc = "Git: hunks в quickfix" },
+            {
+                "<leader>ghs",
+                function() require("gitsigns").stage_hunk({ vim.fn.line("."), vim.fn.line("v") }) end,
+                mode = "x",
+                desc = "Git: stage selected hunks",
+            },
+            {
+                "<leader>ghr",
+                function() require("gitsigns").reset_hunk({ vim.fn.line("."), vim.fn.line("v") }) end,
+                mode = "x",
+                desc = "Git: reset selected hunks",
+            },
         },
         config = function()
-            require("gitsigns").setup()
+            require("gitsigns").setup({
+                signs = {
+                    add = { text = "▌" },
+                    change = { text = "▌" },
+                    delete = { text = "▸" },
+                    topdelete = { text = "▾" },
+                    changedelete = { text = "▌" },
+                    untracked = { text = "▌" },
+                },
+                signs_staged = {
+                    add = { text = "│" },
+                    change = { text = "│" },
+                    delete = { text = "▸" },
+                    topdelete = { text = "▾" },
+                    changedelete = { text = "│" },
+                    untracked = { text = "│" },
+                },
+                current_line_blame = false,
+                current_line_blame_opts = {
+                    delay = 500,
+                    virt_text_pos = "eol",
+                },
+                preview_config = {
+                    border = "rounded",
+                    style = "minimal",
+                    relative = "cursor",
+                    row = 0,
+                    col = 1,
+                },
+                attach_to_untracked = true,
+            })
         end,
     },
 
     -- --------------------------------------------------------
     -- Diffview: удобный git diff/история в отдельном UI
-    -- Hotkeys: <leader>gd/<leader>gD/<leader>gH
     -- --------------------------------------------------------
     {
         "sindrets/diffview.nvim",
         cmd = { "DiffviewOpen", "DiffviewClose", "DiffviewFileHistory" },
         keys = {
-            { "<leader>gd", "<cmd>DiffviewOpen<cr>", desc = "Открыть diff" },
-            { "<leader>gD", "<cmd>DiffviewClose<cr>", desc = "Закрыть diff" },
-            { "<leader>gH", "<cmd>DiffviewFileHistory %<cr>", desc = "История файла" },
+            { "<leader>gd", "<cmd>DiffviewOpen<cr>", desc = "Git: diff workspace" },
+            { "<leader>gds", "<cmd>DiffviewOpen --staged<cr>", desc = "Git: diff staged" },
+            { "<leader>gdm", diffview_open_upstream, desc = "Git: diff branch upstream" },
+            { "<leader>gdf", "<cmd>DiffviewFileHistory %<cr>", desc = "Git: история файла" },
+            { "<leader>gdh", "<cmd>DiffviewFileHistory<cr>", desc = "Git: история проекта" },
+            { "<leader>gD", "<cmd>DiffviewClose<cr>", desc = "Git: закрыть diff" },
         },
-        opts = {},
+        opts = {
+            enhanced_diff_hl = true,
+            view = {
+                default = { layout = "diff2_horizontal" },
+                merge_tool = { layout = "diff3_horizontal" },
+            },
+        },
     },
 
     -- --------------------------------------------------------
-    -- Neogit: IDE-подобный git UI (commit/push/pull/stash/rebase/cherrypick)
-    -- Hotkeys: <leader>gg/<leader>gc/<leader>gp/<leader>gP/<leader>gl
+    -- Neogit: IDE-подобный git UI. Основной git UI в этом конфиге - LazyGit.
     -- --------------------------------------------------------
     {
         "NeogitOrg/neogit",
@@ -241,11 +308,7 @@ return {
             "sindrets/diffview.nvim",
         },
         keys = {
-            { "<leader>gg", "<cmd>Neogit kind=split<cr>", desc = "Git статус (Neogit)" },
-            { "<leader>gc", "<cmd>Neogit commit<cr>", desc = "Git commit (Neogit)" },
-            { "<leader>gp", "<cmd>Neogit push<cr>", desc = "Git push (Neogit)" },
-            { "<leader>gP", "<cmd>Neogit pull<cr>", desc = "Git pull (Neogit)" },
-            { "<leader>gl", "<cmd>Neogit log<cr>", desc = "Git лог (Neogit)" },
+            { "<leader>gN", "<cmd>Neogit kind=split<cr>", desc = "Git: Neogit status" },
         },
         opts = {
             kind = "split",
@@ -261,8 +324,7 @@ return {
     },
 
     -- --------------------------------------------------------
-    -- LazyGit integration: быстрый TUI для git внутри Neovim
-    -- Hotkeys: <leader>lg
+    -- LazyGit integration: основной TUI для git внутри Neovim
     -- --------------------------------------------------------
     {
         "kdheepak/lazygit.nvim",
@@ -275,24 +337,24 @@ return {
         },
         dependencies = { "nvim-lua/plenary.nvim" },
         keys = {
-            { "<leader>lg", "<cmd>LazyGit<cr>", desc = "LazyGit" },
+            { "<leader>gg", "<cmd>LazyGit<cr>", desc = "Git: LazyGit" },
+            { "<leader>gf", "<cmd>LazyGitCurrentFile<cr>", desc = "Git: LazyGit current file" },
         },
     },
 
     -- --------------------------------------------------------
     -- Git conflict helper: навигация и принятие ours/theirs/both
-    -- Hotkeys: <leader>gco/<leader>gct/<leader>gcb/<leader>gcn/<leader>gcp
     -- --------------------------------------------------------
     {
         "akinsho/git-conflict.nvim",
         version = "*",
         event = "BufReadPost",
         keys = {
-            { "<leader>gco", "<cmd>GitConflictChooseOurs<cr>", desc = "Конфликт: выбрать ours" },
-            { "<leader>gct", "<cmd>GitConflictChooseTheirs<cr>", desc = "Конфликт: выбрать theirs" },
-            { "<leader>gcb", "<cmd>GitConflictChooseBoth<cr>", desc = "Конфликт: выбрать оба" },
-            { "<leader>gcn", "<cmd>GitConflictNextConflict<cr>", desc = "Конфликт: следующий" },
-            { "<leader>gcp", "<cmd>GitConflictPrevConflict<cr>", desc = "Конфликт: предыдущий" },
+            { "<leader>gxo", "<cmd>GitConflictChooseOurs<cr>", desc = "Git conflict: выбрать ours" },
+            { "<leader>gxt", "<cmd>GitConflictChooseTheirs<cr>", desc = "Git conflict: выбрать theirs" },
+            { "<leader>gxb", "<cmd>GitConflictChooseBoth<cr>", desc = "Git conflict: выбрать оба" },
+            { "<leader>gxn", "<cmd>GitConflictNextConflict<cr>", desc = "Git conflict: следующий" },
+            { "<leader>gxp", "<cmd>GitConflictPrevConflict<cr>", desc = "Git conflict: предыдущий" },
         },
         opts = {
             default_mappings = false,
@@ -486,11 +548,21 @@ return {
                 silent = true,
                 desc = "Copilot: показать подсказку (ручной запуск)",
             })
+            vim.keymap.set("i", "<M-g>", "<Plug>(copilot-suggest)", {
+                silent = true,
+                desc = "Copilot: показать подсказку (Cmd+G)",
+            })
             vim.keymap.set("i", "<C-l>", 'copilot#Accept("\\<CR>")', {
                 expr = true,
                 replace_keycodes = false,
                 silent = true,
                 desc = "Copilot: принять",
+            })
+            vim.keymap.set("i", "<M-l>", 'copilot#Accept("\\<CR>")', {
+                expr = true,
+                replace_keycodes = false,
+                silent = true,
+                desc = "Copilot: принять (Cmd+L)",
             })
             vim.keymap.set("i", "<M-]>", "<Plug>(copilot-next)", { silent = true, desc = "Copilot: следующая подсказка" })
             vim.keymap.set("i", "<M-[>", "<Plug>(copilot-previous)",
