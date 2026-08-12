@@ -554,16 +554,80 @@ return {
     },
 
     -- --------------------------------------------------------
-    -- AI: OpenAI Codex (через Codex CLI вне Neovim)
-    -- Hotkeys: <leader>ax
+    -- AI CLI: Codex и другие агенты прямо внутри Neovim.
+    -- Sidekick передаёт агенту файл/позицию/выделение, следит за изменениями
+    -- на диске и сохраняет CLI-сессию между перезапусками Neovim через tmux.
+    -- NES отключён: inline-подсказки уже предоставляет copilot.vim.
     -- --------------------------------------------------------
     {
-        "johnseth97/codex.nvim",
-        cmd = { "CodexToggle" },
+        "folke/sidekick.nvim",
+        cmd = { "Sidekick" },
         keys = {
-            { "<leader>ax", "<cmd>CodexToggle<cr>", desc = "AI: показать/скрыть Codex" },
+            {
+                "<C-.>",
+                function() require("sidekick.cli").focus({ name = "codex" }) end,
+                mode = { "n", "t", "i", "x" },
+                desc = "AI: фокус/скрыть Codex",
+            },
+            {
+                "<leader>ax",
+                function() require("sidekick.cli").toggle({ name = "codex", focus = true }) end,
+                desc = "AI: показать/скрыть Codex",
+            },
+            {
+                "<leader>as",
+                function() require("sidekick.cli").select({ filter = { installed = true }, focus = true }) end,
+                desc = "AI: выбрать агента/сессию",
+            },
+            {
+                "<leader>at",
+                function() require("sidekick.cli").send({ name = "codex", msg = "{this}" }) end,
+                mode = { "n", "x" },
+                desc = "AI: добавить текущий контекст",
+            },
+            {
+                "<leader>av",
+                function() require("sidekick.cli").send({ name = "codex", msg = "{selection}" }) end,
+                mode = "x",
+                desc = "AI: отправить выделенный текст",
+            },
+            {
+                "<leader>ab",
+                function() require("sidekick.cli").send({ name = "codex", msg = "{file}" }) end,
+                desc = "AI: добавить текущий файл",
+            },
+            {
+                "<leader>ap",
+                function()
+                    require("sidekick.cli").prompt(function(_, text)
+                        if text then
+                            require("sidekick.cli").send({ name = "codex", text = text })
+                        end
+                    end)
+                end,
+                mode = { "n", "x" },
+                desc = "AI: выбрать готовый промпт",
+            },
         },
-        opts = {},
+        opts = {
+            nes = { enabled = false },
+            copilot = {
+                status = { enabled = false },
+            },
+            cli = {
+                watch = true,
+                picker = "telescope",
+                win = {
+                    layout = "right",
+                    split = { width = 80, height = 20 },
+                },
+                mux = {
+                    backend = "tmux",
+                    enabled = vim.fn.executable("tmux") == 1,
+                    create = "terminal",
+                },
+            },
+        },
     },
 
     -- --------------------------------------------------------

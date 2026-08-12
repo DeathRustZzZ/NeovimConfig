@@ -236,6 +236,22 @@ return {
             local capslock = function()
                 return capsdetect.get_caps_state() and "󰘲 CAPS" or ""
             end
+            local agent_status = function()
+                local status = package.loaded["sidekick.status"]
+                if not status then return "" end
+
+                local sessions = status.cli()
+                if #sessions == 0 then return "" end
+
+                local names = {}
+                for _, session in ipairs(sessions) do
+                    names[session.tool] = true
+                end
+
+                local tools = vim.tbl_keys(names)
+                table.sort(tools)
+                return " " .. table.concat(tools, ",")
+            end
 
             require("lualine").setup({
                 options = {
@@ -254,6 +270,7 @@ return {
                         },
                     },
                     lualine_x = {
+                        agent_status,
                         capslock,
                         "diagnostics",
                         "encoding",
