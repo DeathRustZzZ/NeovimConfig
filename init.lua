@@ -10,6 +10,7 @@ end
 
 require("lazy").setup("config.plugins", {
     checker = { enabled = true, notify = false },
+    rocks = { enabled = false },
 })
 
 require("config.autocmds")

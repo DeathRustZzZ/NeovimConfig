@@ -12,27 +12,15 @@ return {
             end
 
             local function client_supports_inlay_hints(client)
-                if not client then return false end
-                if client.supports_method then
-                    return client:supports_method("textDocument/inlayHint")
-                end
-                return client.server_capabilities and client.server_capabilities.inlayHintProvider
+                return client and client:supports_method("textDocument/inlayHint")
             end
 
             local function set_inlay_hints(bufnr, value)
-                if not vim.lsp.inlay_hint then return end
-                local ok = pcall(vim.lsp.inlay_hint.enable, value, { bufnr = bufnr })
-                if not ok then
-                    pcall(vim.lsp.inlay_hint.enable, bufnr, value)
-                end
+                vim.lsp.inlay_hint.enable(value, { bufnr = bufnr })
             end
 
             local function inlay_hints_enabled(bufnr)
-                if not vim.lsp.inlay_hint then return false end
-                local ok, enabled = pcall(vim.lsp.inlay_hint.is_enabled, { bufnr = bufnr })
-                if ok then return enabled end
-                ok, enabled = pcall(vim.lsp.inlay_hint.is_enabled, bufnr)
-                return ok and enabled or false
+                return vim.lsp.inlay_hint.is_enabled({ bufnr = bufnr })
             end
 
             local function buffer_supports_inlay_hints(bufnr)
@@ -71,10 +59,6 @@ return {
                         vim.tbl_extend("force", opts, { desc = "LSP: перейти к типу" }))
                     vim.keymap.set("n", "K", vim.lsp.buf.hover,
                         vim.tbl_extend("force", opts, { desc = "LSP: подсказка" }))
-                    vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename,
-                        vim.tbl_extend("force", opts, { desc = "LSP: переименовать" }))
-                    vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action,
-                        vim.tbl_extend("force", opts, { desc = "LSP: действия с кодом" }))
                     vim.keymap.set("n", "<leader>ls", function()
                         local ok, builtin = pcall(require, "telescope.builtin")
                         if ok then
@@ -91,20 +75,11 @@ return {
                             vim.lsp.buf.workspace_symbol()
                         end
                     end, vim.tbl_extend("force", opts, { desc = "LSP: символы workspace" }))
-                    vim.keymap.set("n", "<leader>li", vim.lsp.buf.incoming_calls,
-                        vim.tbl_extend("force", opts, { desc = "LSP: incoming calls" }))
-                    vim.keymap.set("n", "<leader>lo", vim.lsp.buf.outgoing_calls,
-                        vim.tbl_extend("force", opts, { desc = "LSP: outgoing calls" }))
-
                     if client_supports_inlay_hints(client) then
                         set_inlay_hints(args.buf, true)
                     end
 
                     vim.keymap.set("n", "<leader>uh", function()
-                        if not vim.lsp.inlay_hint then
-                            vim.notify("Inlay hints не поддерживаются этой версией Neovim", vim.log.levels.WARN)
-                            return
-                        end
                         if not buffer_supports_inlay_hints(args.buf) then
                             vim.notify("LSP сервер не поддерживает inlay hints", vim.log.levels.WARN)
                             return
@@ -112,12 +87,6 @@ return {
                         set_inlay_hints(args.buf, not inlay_hints_enabled(args.buf))
                     end, vim.tbl_extend("force", opts, { desc = "Вкл/выкл inlay hints" }))
 
-                    if vim.bo[args.buf].filetype == "rust" then
-                        vim.keymap.set("n", "<leader>rh", vim.lsp.buf.hover,
-                            vim.tbl_extend("force", opts, { desc = "Rust: документация" }))
-                        vim.keymap.set("n", "<leader>ra", vim.lsp.buf.code_action,
-                            vim.tbl_extend("force", opts, { desc = "Rust: действия с кодом" }))
-                    end
                 end,
             })
 
@@ -163,10 +132,10 @@ return {
             if ok_cmp then
                 capabilities = cmp_lsp.default_capabilities(capabilities)
             end
+            vim.lsp.config("*", { capabilities = capabilities })
 
             local servers = {
                 lua_ls = {
-                    capabilities = capabilities,
                     settings = {
                         Lua = {
                             diagnostics = { globals = { "vim" } },
@@ -174,11 +143,8 @@ return {
                         },
                     },
                 },
-                taplo = {
-                    capabilities = capabilities,
-                },
+                taplo = {},
                 gopls = {
-                    capabilities = capabilities,
                     settings = {
                         gopls = {
                             gofumpt = false,
@@ -216,23 +182,9 @@ return {
                 },
             }
 
-            local lsp_config_mt = type(vim.lsp.config) == "table" and getmetatable(vim.lsp.config) or nil
-            local use_new_lsp_api = type(vim.lsp.enable) == "function"
-                and (type(vim.lsp.config) == "function" or (lsp_config_mt and type(lsp_config_mt.__call) == "function"))
-            local ok_lspconfig, lspconfig = pcall(require, "lspconfig")
-
             for server, config in pairs(servers) do
-                if use_new_lsp_api then
-                    vim.lsp.config(server, config)
-                    vim.lsp.enable(server)
-                elseif ok_lspconfig then
-                    -- Avoid deprecated lspconfig metatable access on Neovim 0.11+
-                    -- (lspconfig[server] triggers vim.deprecate with traceback).
-                    local ok_server, server_config = pcall(require, "lspconfig.configs." .. server)
-                    if ok_server and server_config and type(server_config.setup) == "function" then
-                        server_config.setup(config)
-                    end
-                end
+                vim.lsp.config(server, config)
+                vim.lsp.enable(server)
             end
         end,
     },
@@ -244,8 +196,8 @@ return {
     -- --------------------------------------------------------
     {
         "mrcjkb/rustaceanvim",
-        version = "^6",
-        ft = { "rust" },
+        version = "^9",
+        lazy = false,
         init = function()
             vim.g.rustaceanvim = {
                 server = {

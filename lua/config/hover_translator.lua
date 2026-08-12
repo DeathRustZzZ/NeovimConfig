@@ -1,85 +1,10 @@
 local translator = require("config.translator")
+local translation_view = require("config.translation_view")
 
 local M = {}
 
-local translation_heading = "## Перевод"
-
-local function is_valid_float(winid)
-    if not winid or not vim.api.nvim_win_is_valid(winid) then
-        return false
-    end
-
-    local ok, config = pcall(vim.api.nvim_win_get_config, winid)
-    return ok and config.relative ~= ""
-end
-
-local function hover_from_noice()
-    local ok, docs = pcall(require, "noice.lsp.docs")
-    if not ok or not docs._messages then
-        return nil
-    end
-
-    local message = docs._messages.hover
-    if not message or type(message.win) ~= "function" then
-        return nil
-    end
-
-    local ok_win, winid = pcall(message.win, message)
-    if not ok_win or not is_valid_float(winid) then
-        return nil
-    end
-
-    return {
-        winid = winid,
-        bufnr = vim.api.nvim_win_get_buf(winid),
-    }
-end
-
-local function hover_from_lspsaga()
-    local ok, hover = pcall(require, "lspsaga.hover")
-    if not ok or not is_valid_float(hover.winid) then
-        return nil
-    end
-
-    return {
-        winid = hover.winid,
-        bufnr = hover.bufnr or vim.api.nvim_win_get_buf(hover.winid),
-    }
-end
-
-local function hover_from_standard_lsp()
-    for _, winid in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
-        if is_valid_float(winid) then
-            local ok = pcall(vim.api.nvim_win_get_var, winid, "textDocument/hover")
-            if ok then
-                return {
-                    winid = winid,
-                    bufnr = vim.api.nvim_win_get_buf(winid),
-                }
-            end
-        end
-    end
-
-    for _, winid in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
-        if is_valid_float(winid) then
-            local bufnr = vim.api.nvim_win_get_buf(winid)
-            local filetype = vim.bo[bufnr].filetype
-            local buftype = vim.bo[bufnr].buftype
-            if buftype == "nofile" and (filetype == "markdown" or filetype == "noice") then
-                return {
-                    winid = winid,
-                    bufnr = bufnr,
-                }
-            end
-        end
-    end
-
-    return nil
-end
-
-local function find_hover()
-    return hover_from_noice() or hover_from_lspsaga() or hover_from_standard_lsp()
-end
+local generation = 0
+local active_lsp_requests = {}
 
 local function trim_empty_lines(lines)
     local first = 1
@@ -93,121 +18,197 @@ local function trim_empty_lines(lines)
     end
 
     local result = {}
-    for i = first, last do
-        result[#result + 1] = lines[i]
+    for index = first, last do
+        result[#result + 1] = lines[index]
     end
     return result
 end
 
-local function has_translation(lines)
-    for _, line in ipairs(lines) do
-        if vim.trim(line) == translation_heading then
-            return true
+local function hover_clients(bufnr)
+    local clients = {}
+    for _, client in ipairs(vim.lsp.get_clients({ bufnr = bufnr })) do
+        if client:supports_method("textDocument/hover", bufnr) then
+            clients[#clients + 1] = client
         end
     end
-    return false
+    return clients
 end
 
-local function original_lines(lines)
-    local result = {}
-    for _, line in ipairs(lines) do
-        if vim.trim(line) == translation_heading then
-            break
+local function cancel_lsp_requests()
+    for _, request in ipairs(active_lsp_requests) do
+        pcall(request.client.cancel_request, request.client, request.id)
+    end
+    active_lsp_requests = {}
+end
+
+local function capture_context()
+    local winid = vim.api.nvim_get_current_win()
+    local bufnr = vim.api.nvim_get_current_buf()
+    return {
+        winid = winid,
+        bufnr = bufnr,
+        cursor = vim.api.nvim_win_get_cursor(winid),
+        changedtick = vim.api.nvim_buf_get_changedtick(bufnr),
+    }
+end
+
+local function context_is_current(context)
+    return vim.api.nvim_win_is_valid(context.winid)
+        and vim.api.nvim_buf_is_valid(context.bufnr)
+        and vim.api.nvim_get_current_win() == context.winid
+        and vim.api.nvim_win_get_buf(context.winid) == context.bufnr
+        and vim.api.nvim_buf_get_changedtick(context.bufnr) == context.changedtick
+        and vim.deep_equal(vim.api.nvim_win_get_cursor(context.winid), context.cursor)
+end
+
+local function markdown_prose(lines)
+    local prose = {}
+    local in_code_block = false
+
+    for _, original_line in ipairs(lines) do
+        local line = original_line
+        local trimmed = vim.trim(line)
+        if trimmed:match("^```") or trimmed:match("^~~~") then
+            in_code_block = not in_code_block
+        elseif not in_code_block then
+            line = line:gsub("!%[[^%]]*%]%([^%)]+%)", "")
+            line = line:gsub("%[([^%]]+)%]%([^%)]+%)", "%1")
+            line = line:gsub("`[^`]+`", "")
+            line = line:gsub("^%s*#+%s*", "")
+            line = line:gsub("^%s*>%s?", "")
+            line = line:gsub("^%s*[%-%*+]%s+", "")
+            line = vim.trim(line)
+
+            if line ~= "" and not line:match("^[-=_]+$") then
+                prose[#prose + 1] = line
+            end
         end
-        result[#result + 1] = line
     end
-    return trim_empty_lines(result)
+
+    return table.concat(prose, "\n")
 end
 
-local function split_translation(text)
-    return trim_empty_lines(vim.split(text, "\n", { plain = true }))
-end
-
-local function wrapped_height(lines, width)
-    local height = 0
-    width = math.max(width, 1)
-
-    for _, line in ipairs(lines) do
-        local line_width = vim.fn.strdisplaywidth(line:gsub("%z", "\n"))
-        height = height + math.max(1, math.ceil(line_width / width))
-    end
-
-    return height
-end
-
-local function resize_hover(winid, bufnr)
-    if not is_valid_float(winid) or not vim.api.nvim_buf_is_valid(bufnr) then
-        return
-    end
-
-    local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-    local current_height = vim.api.nvim_win_get_height(winid)
-    local width = vim.api.nvim_win_get_width(winid)
-    local max_height = math.max(current_height, math.floor((vim.o.lines - vim.o.cmdheight - 2) * 0.8))
-    local next_height = math.min(max_height, math.max(current_height, wrapped_height(lines, width)))
-
-    pcall(vim.api.nvim_win_set_config, winid, { height = next_height })
-end
-
-local function append_translation(target, translated)
-    if not is_valid_float(target.winid) or not vim.api.nvim_buf_is_valid(target.bufnr) then
-        vim.notify("Hover уже закрыт, перевод некуда вставить.", vim.log.levels.WARN)
-        return
-    end
-
-    local translation_lines = split_translation(translated)
-    if #translation_lines == 0 then
-        vim.notify("Переводчик вернул пустой результат.", vim.log.levels.WARN)
-        return
-    end
-
-    local block = { "", "---", "", translation_heading, "" }
-    vim.list_extend(block, translation_lines)
-
-    local was_modifiable = vim.bo[target.bufnr].modifiable
-    vim.bo[target.bufnr].modifiable = true
-    local ok, err = pcall(vim.api.nvim_buf_set_lines, target.bufnr, -1, -1, false, block)
-    vim.bo[target.bufnr].modifiable = was_modifiable
-
-    if not ok then
-        vim.notify(
-            "Не удалось вставить перевод в hover: " .. tostring(err),
-            vim.log.levels.ERROR
-        )
-        return
-    end
-
-    resize_hover(target.winid, target.bufnr)
+local function error_message(err)
+    local message = type(err) == "table" and err.message or vim.inspect(err)
+    return tostring(message or "неизвестная ошибка")
 end
 
 function M.translate()
-    local target = find_hover()
-    if not target or not is_valid_float(target.winid) or not vim.api.nvim_buf_is_valid(target.bufnr) then
-        vim.notify(
-            "Окно LSP hover не найдено. Сначала откройте hover через K или <leader>lh.",
-            vim.log.levels.WARN
-        )
+    generation = generation + 1
+    local current_generation = generation
+    cancel_lsp_requests()
+    translator.cancel("hover")
+
+    local context = capture_context()
+    local clients = hover_clients(context.bufnr)
+    if #clients == 0 then
+        vim.notify("Подключённый LSP сервер не поддерживает hover.", vim.log.levels.WARN)
         return
     end
 
-    local lines = vim.api.nvim_buf_get_lines(target.bufnr, 0, -1, false)
-    if has_translation(lines) then
-        vim.notify("Перевод уже добавлен в текущий hover.", vim.log.levels.INFO)
-        return
+    local pending = #clients
+    local responses = {}
+    local errors = {}
+    local finished = false
+
+    local function finish()
+        if finished or pending > 0 or current_generation ~= generation then
+            return
+        end
+        finished = true
+        active_lsp_requests = {}
+
+        if not context_is_current(context) then
+            vim.notify("Перевод hover отменён: позиция курсора изменилась.", vim.log.levels.INFO)
+            return
+        end
+
+        local source_lines = {}
+        local prose_parts = {}
+        local response_count = 0
+        for index = 1, #clients do
+            local response = responses[index]
+            if response then
+                response_count = response_count + 1
+                if #clients > 1 then
+                    vim.list_extend(source_lines, { "## " .. clients[index].name, "" })
+                end
+                vim.list_extend(source_lines, response)
+                vim.list_extend(source_lines, { "" })
+
+                local prose = markdown_prose(response)
+                if prose ~= "" then
+                    prose_parts[#prose_parts + 1] = prose
+                end
+            end
+        end
+        source_lines = trim_empty_lines(source_lines)
+
+        if response_count == 0 then
+            local message = errors[1] and (": " .. errors[1]) or ""
+            vim.notify("Не удалось получить LSP hover" .. message, vim.log.levels.WARN)
+            return
+        end
+
+        local prose = table.concat(prose_parts, "\n\n")
+        if prose == "" then
+            vim.notify("В LSP hover нет обычного текста для перевода — только код.", vim.log.levels.INFO)
+            return
+        end
+
+        translator.translate(prose, {
+            request_key = "hover",
+            on_success = function(translated)
+                if current_generation ~= generation or not context_is_current(context) then
+                    return
+                end
+                translation_view.open(source_lines, translated, {
+                    title = " LSP перевод ",
+                    original_first = true,
+                    original_title = "LSP hover",
+                })
+            end,
+        })
     end
 
-    local source_lines = original_lines(lines)
-    if #source_lines == 0 then
-        vim.notify("В hover нет текста для перевода.", vim.log.levels.WARN)
-        return
+    for index, client in ipairs(clients) do
+        local params = vim.lsp.util.make_position_params(context.winid, client.offset_encoding)
+        local requested, request_id = client:request("textDocument/hover", params, function(err, result)
+            vim.schedule(function()
+                if current_generation ~= generation then
+                    return
+                end
+
+                if err then
+                    errors[#errors + 1] = error_message(err)
+                elseif result and result.contents then
+                    local ok, lines = pcall(vim.lsp.util.convert_input_to_markdown_lines, result.contents)
+                    if ok then
+                        lines = trim_empty_lines(lines)
+                        if #lines > 0 then
+                            responses[index] = lines
+                        end
+                    else
+                        errors[#errors + 1] = tostring(lines)
+                    end
+                end
+
+                pending = pending - 1
+                finish()
+            end)
+        end, context.bufnr)
+
+        if requested and request_id then
+            active_lsp_requests[#active_lsp_requests + 1] = {
+                client = client,
+                id = request_id,
+            }
+        else
+            pending = pending - 1
+        end
     end
 
-    translator.translate(table.concat(source_lines, "\n"), {
-        empty_message = "В hover нет текста для перевода.",
-        on_success = function(translated)
-            append_translation(target, translated)
-        end,
-    })
+    finish()
 end
 
 return M

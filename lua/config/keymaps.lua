@@ -9,6 +9,7 @@ end
 local ui = require("config.ui")
 local translator = require("config.translator")
 local hover_translator = require("config.hover_translator")
+local translation_view = require("config.translation_view")
 
 local function map(mode, lhs, rhs, desc, opts)
     local base = { desc = desc, silent = true }
@@ -42,10 +43,33 @@ local function graphify(args)
     local target = args and args ~= "" and args or "."
     vim.cmd("botright split")
     vim.cmd("resize 15")
-    vim.fn.termopen({ "graphify", target }, {
+    vim.cmd("enew")
+    local job_id = vim.fn.jobstart({ "graphify", target }, {
         cwd = vim.fn.getcwd(),
+        term = true,
     })
+    if job_id <= 0 then
+        vim.notify("Не удалось запустить `graphify`.", vim.log.levels.ERROR)
+        return
+    end
     vim.cmd("startinsert")
+end
+
+local function translate_in_window(text, empty_message, request_key)
+    translator.translate(text, {
+        empty_message = empty_message,
+        request_key = request_key,
+        on_success = function(translated, original)
+            translation_view.open(original, translated)
+        end,
+    })
+end
+
+local function visual_selection()
+    local lines = vim.fn.getregion(vim.fn.getpos("v"), vim.fn.getpos("."), {
+        type = vim.fn.mode(),
+    })
+    return table.concat(lines, "\n")
 end
 
 vim.api.nvim_create_user_command("Graphify", function(opts)
@@ -66,12 +90,16 @@ map("v", "<C-s>", "<Esc><cmd>w<cr>", "Сохранить файл (Ctrl+S)")
 map("n", "<leader>q", smart_close, "Закрыть окно/буфер (без выхода из Neovim)")
 map("n", "<leader>Q", "<cmd>qa<cr>", "Выйти из Neovim")
 map("n", "<leader>cl", copy_whole_buffer_to_clipboard, "Скопировать весь буфер в буфер обмена")
-map("n", "<leader>ag", function() graphify(".") end, "AI: Graphify текущий проект")
+map("n", "<leader>cg", function() graphify(".") end, "Graphify: knowledge graph проекта")
 
 map("i", "jk", "<Esc>", "Выйти из режима вставки")
 
-map("n", "<leader>dn", vim.diagnostic.goto_next, "Следующая диагностика")
-map("n", "<leader>dp", vim.diagnostic.goto_prev, "Предыдущая диагностика")
+map("n", "<leader>dn", function()
+    vim.diagnostic.jump({ count = 1, float = true })
+end, "Следующая диагностика")
+map("n", "<leader>dp", function()
+    vim.diagnostic.jump({ count = -1, float = true })
+end, "Предыдущая диагностика")
 map("n", "<leader>dd", vim.diagnostic.open_float, "Диагностика строки")
 map("n", "<leader>lt", hover_translator.translate, "LSP: перевести hover")
 
@@ -81,8 +109,12 @@ map("n", "<leader>tr", function()
 end, "Перевести слово на русский")
 
 map("n", "<leader>tl", function()
-    translator.translate_and_notify(vim.api.nvim_get_current_line(), "Строка пустая")
+    translate_in_window(vim.api.nvim_get_current_line(), "Строка пустая", "line")
 end, "Перевести строку на русский")
+
+map("x", "<leader>tv", function()
+    translate_in_window(visual_selection(), "Выделение пустое", "selection")
+end, "Перевести выделение на русский")
 
 map("n", "<leader>ut", ui.cycle_preset, "Переключить UI-пресет")
 map("n", "<leader>u1", function() ui.set_preset("glass") end, "UI-пресет: glass")
