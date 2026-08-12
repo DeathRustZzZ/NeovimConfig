@@ -315,12 +315,18 @@ return {
             "LazyGitCurrentFile",
             "LazyGitFilter",
             "LazyGitFilterCurrentFile",
+            "LazyGitLog",
         },
         dependencies = { "nvim-lua/plenary.nvim" },
         keys = {
             { "<leader>gg", "<cmd>LazyGit<cr>", desc = "Git: LazyGit" },
             { "<leader>gf", "<cmd>LazyGitCurrentFile<cr>", desc = "Git: LazyGit current file" },
+            { "<leader>gl", "<cmd>LazyGitLog<cr>", desc = "Git: граф истории (LazyGit)" },
         },
+        init = function()
+            vim.g.lazygit_floating_window_scaling_factor = 0.97
+            vim.g.lazygit_floating_window_border_chars = { "╭", "─", "╮", "│", "╯", "─", "╰", "│" }
+        end,
     },
 
     -- --------------------------------------------------------
