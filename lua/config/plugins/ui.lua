@@ -18,7 +18,7 @@ return {
                 group = "+",
             },
             spec = {
-                { "<leader>a", group = "AI" },
+                { "<leader>a", group = "AI: Codex" },
                 { "<leader>b", group = "Буферы" },
                 { "<leader>c", group = "Код/Crates" },
                 { "<leader>d", group = "Диагностика/Отладка" },

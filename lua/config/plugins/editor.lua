@@ -8,6 +8,17 @@ local function diffview_open_upstream()
     vim.cmd("DiffviewOpen " .. upstream .. "...HEAD")
 end
 
+local function codex_send(opts)
+    opts = vim.tbl_extend("force", opts or {}, { name = "codex" })
+    require("sidekick.cli").send(opts)
+end
+
+local function codex_action(prompt)
+    return function()
+        codex_send({ prompt = prompt, submit = true })
+    end
+end
+
 return {
     -- --------------------------------------------------------
     -- Treesitter: умная подсветка/отступы
@@ -495,7 +506,7 @@ return {
     },
 
     -- --------------------------------------------------------
-    -- AI: GitHub Copilot inline completion
+    -- GitHub Copilot: только inline autocomplete
     -- Требует Node.js >= 18 и авторизацию через :Copilot setup
     -- --------------------------------------------------------
     {
@@ -506,6 +517,10 @@ return {
             vim.g.copilot_enabled = true
         end,
         config = function()
+            vim.keymap.set("i", "<M-;>", "<Plug>(copilot-suggest)", {
+                silent = true,
+                desc = "Copilot: показать inline-подсказку (Alt+;)",
+            })
             vim.keymap.set("i", "<C-g>", "<Plug>(copilot-suggest)", {
                 silent = true,
                 desc = "Copilot: показать подсказку (ручной запуск)",
@@ -534,27 +549,7 @@ return {
     },
 
     -- --------------------------------------------------------
-    -- AI: Copilot Chat (требует установленный Copilot)
-    -- Hotkeys: <leader>ac/<leader>ae/<leader>ar/<leader>af
-    -- --------------------------------------------------------
-    {
-        "CopilotC-Nvim/CopilotChat.nvim",
-        dependencies = {
-            "github/copilot.vim",
-            "nvim-lua/plenary.nvim",
-        },
-        cmd = { "CopilotChat", "CopilotChatToggle", "CopilotChatExplain", "CopilotChatReview", "CopilotChatFix" },
-        keys = {
-            { "<leader>ac", "<cmd>CopilotChatToggle<cr>", mode = "n", desc = "AI: показать/скрыть чат" },
-            { "<leader>ae", "<cmd>CopilotChatExplain<cr>", mode = { "n", "x" }, desc = "AI: объяснить выделение" },
-            { "<leader>ar", "<cmd>CopilotChatReview<cr>", mode = { "n", "x" }, desc = "AI: ревью кода" },
-            { "<leader>af", "<cmd>CopilotChatFix<cr>", mode = { "n", "x" }, desc = "AI: исправить код" },
-        },
-        opts = {},
-    },
-
-    -- --------------------------------------------------------
-    -- AI CLI: Codex и другие агенты прямо внутри Neovim.
+    -- AI CLI: Codex для чата, действий с кодом и агентских задач.
     -- Sidekick передаёт агенту файл/позицию/выделение, следит за изменениями
     -- на диске и сохраняет CLI-сессию между перезапусками Neovim через tmux.
     -- NES отключён: inline-подсказки уже предоставляет copilot.vim.
@@ -570,43 +565,84 @@ return {
                 desc = "AI: фокус/скрыть Codex",
             },
             {
-                "<leader>ax",
+                "<leader>ac",
                 function() require("sidekick.cli").toggle({ name = "codex", focus = true }) end,
-                desc = "AI: показать/скрыть Codex",
+                desc = "AI: показать/скрыть чат Codex",
+            },
+            {
+                "<leader>ae",
+                codex_action("explain"),
+                mode = { "n", "x" },
+                desc = "AI: объяснить выделение (Codex)",
+            },
+            {
+                "<leader>af",
+                codex_action("fix"),
+                mode = { "n", "x" },
+                desc = "AI: исправить код (Codex)",
+            },
+            {
+                "<leader>ar",
+                codex_action("review"),
+                mode = "n",
+                desc = "AI: ревью кода (Codex)",
+            },
+            {
+                "<leader>ar",
+                codex_action("review_selection"),
+                mode = "x",
+                desc = "AI: ревью выделения (Codex)",
+            },
+            {
+                "<leader>aR",
+                codex_action("refactor"),
+                mode = { "n", "x" },
+                desc = "AI: рефакторинг (Codex)",
+            },
+            {
+                "<leader>ag",
+                function() codex_send({ prompt = "project" }) end,
+                desc = "AI: задача по текущему проекту (Codex)",
+            },
+            {
+                "<leader>ai",
+                function() codex_send({ prompt = "implement" }) end,
+                mode = { "n", "x" },
+                desc = "AI: реализовать изменение (Codex)",
             },
             {
                 "<leader>as",
-                function() require("sidekick.cli").select({ filter = { installed = true }, focus = true }) end,
-                desc = "AI: выбрать агента/сессию",
+                function() require("sidekick.cli").select({ filter = { name = "codex" }, focus = true }) end,
+                desc = "AI: выбрать агента/сессию Codex",
             },
             {
                 "<leader>at",
-                function() require("sidekick.cli").send({ name = "codex", msg = "{this}" }) end,
+                function() codex_send({ msg = "{this}" }) end,
                 mode = { "n", "x" },
-                desc = "AI: добавить текущий контекст",
+                desc = "AI: добавить текущий контекст (Codex)",
             },
             {
                 "<leader>av",
-                function() require("sidekick.cli").send({ name = "codex", msg = "{selection}" }) end,
+                function() codex_send({ msg = "{selection}" }) end,
                 mode = "x",
-                desc = "AI: отправить выделенный текст",
+                desc = "AI: отправить выделенный текст (Codex)",
             },
             {
                 "<leader>ab",
-                function() require("sidekick.cli").send({ name = "codex", msg = "{file}" }) end,
-                desc = "AI: добавить текущий файл",
+                function() codex_send({ msg = "{file}" }) end,
+                desc = "AI: добавить текущий файл (Codex)",
             },
             {
                 "<leader>ap",
                 function()
                     require("sidekick.cli").prompt(function(_, text)
                         if text then
-                            require("sidekick.cli").send({ name = "codex", text = text })
+                            codex_send({ text = text })
                         end
                     end)
                 end,
                 mode = { "n", "x" },
-                desc = "AI: выбрать готовый промпт",
+                desc = "AI: выбрать готовый промпт (Codex)",
             },
         },
         opts = {
@@ -617,6 +653,12 @@ return {
             cli = {
                 watch = true,
                 picker = "telescope",
+                prompts = {
+                    implement = "Implement or generate code for {this}. Requested change: ",
+                    project = "Work with the whole current project. Read AGENTS.md and inspect relevant files first. Task: ",
+                    refactor = "Refactor {this} while preserving behavior. Apply the changes and briefly explain them.",
+                    review_selection = "Review {this} for correctness, bugs, maintainability, and possible improvements.",
+                },
                 win = {
                     layout = "right",
                     split = { width = 80, height = 20 },

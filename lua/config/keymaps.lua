@@ -90,7 +90,7 @@ map("v", "<C-s>", "<Esc><cmd>w<cr>", "Сохранить файл (Ctrl+S)")
 map("n", "<leader>q", smart_close, "Закрыть окно/буфер (без выхода из Neovim)")
 map("n", "<leader>Q", "<cmd>qa<cr>", "Выйти из Neovim")
 map("n", "<leader>cl", copy_whole_buffer_to_clipboard, "Скопировать весь буфер в буфер обмена")
-map("n", "<leader>ag", function() graphify(".") end, "AI: Graphify текущий проект")
+map("n", "<leader>cg", function() graphify(".") end, "Graphify: knowledge graph проекта")
 
 map("i", "jk", "<Esc>", "Выйти из режима вставки")
 
