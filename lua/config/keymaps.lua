@@ -9,6 +9,7 @@ end
 local ui = require("config.ui")
 local translator = require("config.translator")
 local hover_translator = require("config.hover_translator")
+local translation_view = require("config.translation_view")
 
 local function map(mode, lhs, rhs, desc, opts)
     local base = { desc = desc, silent = true }
@@ -54,6 +55,23 @@ local function graphify(args)
     vim.cmd("startinsert")
 end
 
+local function translate_in_window(text, empty_message, request_key)
+    translator.translate(text, {
+        empty_message = empty_message,
+        request_key = request_key,
+        on_success = function(translated, original)
+            translation_view.open(original, translated)
+        end,
+    })
+end
+
+local function visual_selection()
+    local lines = vim.fn.getregion(vim.fn.getpos("v"), vim.fn.getpos("."), {
+        type = vim.fn.mode(),
+    })
+    return table.concat(lines, "\n")
+end
+
 vim.api.nvim_create_user_command("Graphify", function(opts)
     graphify(opts.args)
 end, {
@@ -91,8 +109,12 @@ map("n", "<leader>tr", function()
 end, "Перевести слово на русский")
 
 map("n", "<leader>tl", function()
-    translator.translate_and_notify(vim.api.nvim_get_current_line(), "Строка пустая")
+    translate_in_window(vim.api.nvim_get_current_line(), "Строка пустая", "line")
 end, "Перевести строку на русский")
+
+map("x", "<leader>tv", function()
+    translate_in_window(visual_selection(), "Выделение пустое", "selection")
+end, "Перевести выделение на русский")
 
 map("n", "<leader>ut", ui.cycle_preset, "Переключить UI-пресет")
 map("n", "<leader>u1", function() ui.set_preset("glass") end, "UI-пресет: glass")
