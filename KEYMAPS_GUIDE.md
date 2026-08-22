@@ -32,7 +32,8 @@
 | `<leader>` | `Space` |
 | `<C-x>` | `Ctrl + x` |
 | `<S-Tab>` | `Shift + Tab` |
-| `<M-x>` | `Alt + x` (Meta) |
+| `<M-x>` | `Option + x` (Meta); терминал должен отправлять Option как Esc+ |
+| `<D-x>` | `Cmd + x`; обычно доступно только GUI-клиентам Neovim |
 | `n` mode | normal mode |
 | `i` mode | insert mode |
 | `x` mode | visual mode |
@@ -45,11 +46,13 @@
 | Клавиша | Что делает | Режим |
 |---|---|---|
 | `<leader>w` | Сохранить файл | `n` |
-| `<M-s>` | Сохранить файл (Cmd+S в текущем терминале) | `n` `i` `x` |
+| `<C-s>` | Сохранить файл; надёжный вариант для Terminal/iTerm2 | `n` `i` `x` |
+| `<D-s>` | Сохранить файл через Cmd+S в GUI-клиенте | `n` `i` `x` |
+| `<M-s>` | Сохранить файл через Option+S, если Option настроен как Meta | `n` `i` `x` |
 | `<leader>q` | Закрыть текущее окно | `n` |
 | `jk` | Выйти из insert mode | `i` |
-| `<M-h>` `<M-j>` `<M-k>` `<M-l>` | Перейти между окнами (Cmd+H/J/K/L) | `n` |
-| `<M-h>` `<M-j>` `<M-k>` `<M-l>` | Перейти между окнами из терминала (Cmd+H/J/K/L) | `t` |
+| `<M-h>` `<M-j>` `<M-k>` `<M-l>` | Перейти между окнами (Option+H/J/K/L) | `n` |
+| `<M-h>` `<M-j>` `<M-k>` `<M-l>` | Перейти между окнами из терминала (Option+H/J/K/L) | `t` |
 | `<C-h>` `<C-j>` `<C-k>` `<C-l>` | Перейти между окнами | `n` |
 | `<C-h>` `<C-j>` `<C-k>` `<C-l>` | Перейти между окнами из терминала | `t` |
 
@@ -260,9 +263,9 @@
 ### GitHub Copilot (только inline autocomplete)
 | Клавиша | Что делает | Режим |
 |---|---|---|
-| `<M-;>` | Показать inline/ghost-text подсказку Copilot (Alt+;) | `i` |
-| `<M-g>` | Показать подсказку Copilot (Cmd+G) | `i` |
-| `<M-l>` | Принять подсказку Copilot (Cmd+L) | `i` |
+| `<M-;>` | Показать inline/ghost-text подсказку Copilot (Option+;) | `i` |
+| `<M-g>` | Показать подсказку Copilot (Option+G) | `i` |
+| `<M-l>` | Принять подсказку Copilot (Option+L) | `i` |
 | `<C-l>` | Принять подсказку Copilot | `i` |
 | `<M-]>` | Следующая подсказка Copilot | `i` |
 | `<M-[>` | Предыдущая подсказка Copilot | `i` |
@@ -416,7 +419,7 @@ Sidekick используется только для CLI-агентов, поэ
 
 | Проблема | Что проверить |
 |---|---|
-| `Alt`-комбинации не работают | Настройки терминала (Meta/Alt as Esc) |
+| `Option`-комбинации не работают | В Terminal включить “Use Option as Meta key”; в iTerm2 задать Esc+ для Option |
 | Не работает Copilot | Выполнить `:Copilot setup`, проверить Node.js |
 | Не запускается Codex в Neovim | Проверить `codex --version`, `codex login status` и CLI-секцию `:checkhealth sidekick` |
 | Не работает переводчик | Установить `translate-shell` (`trans`) |

@@ -138,11 +138,7 @@ return {
                 end
 
                 local url = ("https://docs.rs/%s"):format(crate)
-                if vim.ui and vim.ui.open then
-                    vim.ui.open(url)
-                else
-                    vim.fn.jobstart({ "xdg-open", url }, { detach = true })
-                end
+                require("config.platform").open_url(url)
             end, { desc = "Crates: открыть docs.rs" })
             vim.keymap.set("n", "<leader>cu", "<cmd>CratesUpdate<cr>", { desc = "Crates: обновить текущий" })
             vim.keymap.set("n", "<leader>cU", "<cmd>CratesUpdateAll<cr>", { desc = "Crates: обновить все" })

@@ -525,7 +525,7 @@ return {
         config = function()
             vim.keymap.set("i", "<M-;>", "<Plug>(copilot-suggest)", {
                 silent = true,
-                desc = "Copilot: показать inline-подсказку (Alt+;)",
+                desc = "Copilot: показать inline-подсказку (Option+;)",
             })
             vim.keymap.set("i", "<C-g>", "<Plug>(copilot-suggest)", {
                 silent = true,
@@ -533,7 +533,7 @@ return {
             })
             vim.keymap.set("i", "<M-g>", "<Plug>(copilot-suggest)", {
                 silent = true,
-                desc = "Copilot: показать подсказку (Cmd+G)",
+                desc = "Copilot: показать подсказку (Option+G)",
             })
             vim.keymap.set("i", "<C-l>", 'copilot#Accept("\\<CR>")', {
                 expr = true,
@@ -545,7 +545,7 @@ return {
                 expr = true,
                 replace_keycodes = false,
                 silent = true,
-                desc = "Copilot: принять (Cmd+L)",
+                desc = "Copilot: принять (Option+L)",
             })
             vim.keymap.set("i", "<M-]>", "<Plug>(copilot-next)", { silent = true, desc = "Copilot: следующая подсказка" })
             vim.keymap.set("i", "<M-[>", "<Plug>(copilot-previous)",

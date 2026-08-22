@@ -22,15 +22,7 @@ vim.opt.smartindent = true
 vim.opt.ignorecase = true
 vim.opt.smartcase = true
 
--- Mason остаётся lazy-loaded, но установленные им CLI должны быть доступны Treesitter/LSP сразу.
-local mason_bin = vim.fn.stdpath("data") .. "/mason/bin"
-if vim.fn.isdirectory(mason_bin) == 1 then
-    local separator = package.config:sub(1, 1) == "\\" and ";" or ":"
-    local path_entries = vim.split(vim.env.PATH or "", separator, { plain = true, trimempty = true })
-    if not vim.list_contains(path_entries, mason_bin) then
-        vim.env.PATH = (vim.env.PATH or "") .. separator .. mason_bin
-    end
-end
+require("config.platform").setup_path()
 
 if vim.fn.has("clipboard") == 1 then
     vim.opt.clipboard = "unnamedplus"
