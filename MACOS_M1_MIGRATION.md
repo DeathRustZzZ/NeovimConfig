@@ -1,4 +1,4 @@
-# Перенос моего Neovim-конфига с Arch Linux на macOS M1
+# Перенос Neovim-конфига с Arch Linux на MacBook Air (Apple Silicon)
 
 Этот конфиг рассчитан на Neovim 0.12+ и переносится на Mac почти без переделок. Основной путь конфига такой же:
 
@@ -42,7 +42,8 @@ scp -r ~/.config/nvim user@macbook:~/.config/
 Дальше поставить базу:
 
 ```bash
-brew install neovim git ripgrep fd lazygit make
+xcode-select --install
+brew install neovim git ripgrep fd lazygit translate-shell
 ```
 
 Что из этого нужно:
@@ -51,7 +52,7 @@ brew install neovim git ripgrep fd lazygit make
 - `git` нужен обязательно, потому что `lazy.nvim` ставится через `git clone`
 - `ripgrep` нужен для `Telescope live_grep`
 - `fd` полезен для быстрого поиска файлов
-- `make` нужен для сборки `telescope-fzf-native.nvim`
+- `make` из Xcode Command Line Tools нужен для сборки `telescope-fzf-native.nvim`
 - `lazygit` нужен только для хоткея `<leader>gg`
 
 ## 3. Шрифт
@@ -173,6 +174,40 @@ nvim
 
 ## 8. Возможные отличия на macOS
 
+### US ANSI-клавиатура MacBook Air
+
+Конфиг рассчитан на системный источник ввода `ABC`/`U.S.` и физическую ANSI-клавиатуру
+с длинным левым Shift. `Leader` остаётся на пробеле, а основные действия доступны без
+Option/Cmd: `<leader>w`, `<C-s>`, `<C-h/j/k/l>`.
+
+В обозначениях Neovim `<M-…>` — это **Option/Meta**, а не Cmd. Чтобы такие сочетания
+работали в терминале:
+
+- Terminal.app: Settings → Profiles → Keyboard → **Use Option as Meta key**;
+- iTerm2: Profiles → Keys → Left/Right Option key → **Esc+**.
+
+`Cmd+S` добавлен как `<D-s>` для GUI-клиентов. Terminal.app и iTerm2 могут перехватывать
+Cmd до Neovim, поэтому в них используйте `<C-s>` или `<leader>w`.
+
+### Автоматическое переключение раскладки
+
+Arch/KDE backend (`qdbus6` + `kreadconfig6`) сохранён. На macOS используется опциональная
+команда `im-select`. Установить её можно из tap проекта:
+
+```bash
+brew tap daipeihust/tap
+brew install im-select
+```
+
+При выходе из Insert/Replace Mode конфиг включает `ABC`, а при возвращении восстанавливает
+предыдущий неанглийский источник. Если английский source имеет другой ID, задайте его в shell:
+
+```bash
+export NVIM_ENGLISH_INPUT_SOURCE="com.apple.keylayout.US"
+```
+
+Без `im-select` Neovim продолжит работать, просто не будет управлять системной раскладкой.
+
 ### Открытие ссылок
 
 В одном месте конфиг использует fallback через `xdg-open`. На macOS аналогичная команда:
@@ -181,9 +216,8 @@ nvim
 open
 ```
 
-Но чаще это не понадобится, потому что сначала вызывается `vim.ui.open`.
-
-Если заметишь, что открытие `docs.rs` не работает, замени в конфиге `xdg-open` на `open`.
+Конфиг сначала вызывает `vim.ui.open`, а fallback теперь сам выбирает `open` на macOS
+и `xdg-open` на Linux.
 
 ### Clipboard
 
@@ -208,7 +242,10 @@ vim.opt.clipboard = "unnamedplus"
 ## 10. Команды одним блоком
 
 ```bash
-brew install neovim git ripgrep fd lazygit make rustup-init translate-shell
+xcode-select --install
+brew install neovim git ripgrep fd lazygit rustup-init translate-shell
+brew tap daipeihust/tap
+brew install im-select
 rustup-init
 source ~/.cargo/env
 rustup component add rustfmt clippy rust-analyzer

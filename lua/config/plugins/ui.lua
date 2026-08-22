@@ -543,7 +543,7 @@ return {
         enabled = function()
             return vim.fn.executable("make") == 1
         end,
-        build = "make", -- нужен make (base-devel на Arch)
+        build = "make", -- Arch: base-devel; macOS: Xcode Command Line Tools
     },
     { "nvim-telescope/telescope-ui-select.nvim", lazy = true },
 }

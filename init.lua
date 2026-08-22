@@ -9,7 +9,9 @@ if not require("config.bootstrap").ensure_lazy() then
 end
 
 require("lazy").setup("config.plugins", {
-    checker = { enabled = true, notify = false },
+    -- Фоновая проверка обновлений создаёт лишние сетевые запросы при работе от батареи.
+    -- При необходимости её можно включить: NVIM_PLUGIN_CHECK=1 nvim
+    checker = { enabled = vim.env.NVIM_PLUGIN_CHECK == "1", notify = false },
     rocks = { enabled = false },
 })
 
