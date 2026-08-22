@@ -25,6 +25,44 @@ return {
     },
 
     -- --------------------------------------------------------
+    -- Go DAP: запуск программ и отладка Go-тестов через Delve.
+    -- Общие breakpoint/continue/step клавиши находятся в nvim-dap ниже.
+    -- --------------------------------------------------------
+    {
+        "leoluz/nvim-dap-go",
+        ft = { "go" },
+        dependencies = { "mfussenegger/nvim-dap" },
+        keys = {
+            {
+                "<leader>dT",
+                function() require("dap-go").debug_test() end,
+                desc = "Go DAP: ближайший тест",
+            },
+            {
+                "<leader>dL",
+                function() require("dap-go").debug_last_test() end,
+                desc = "Go DAP: повторить тест",
+            },
+        },
+        config = function()
+            local delve_path = vim.fn.exepath("dlv")
+            require("dap-go").setup({
+                delve = {
+                    path = delve_path ~= "" and delve_path or "dlv",
+                    initialize_timeout_sec = 20,
+                    port = "${port}",
+                    args = {},
+                    build_flags = {},
+                    detached = vim.fn.has("win32") == 0,
+                },
+                tests = {
+                    verbose = true,
+                },
+            })
+        end,
+    },
+
+    -- --------------------------------------------------------
     -- DAP core: отладка (breakpoints/continue/step)
     -- Hotkeys: <leader>db/<leader>dc/<leader>di/<leader>do/<leader>dO
     -- --------------------------------------------------------
@@ -117,8 +155,8 @@ return {
 
     -- --------------------------------------------------------
     -- Neotest: запуск и просмотр тестов
-    -- + neotest-rust: адаптер под cargo test
-    -- Hotkeys: <leader>tn/<leader>tf/<leader>ts/<leader>to
+    -- + Rust/Go adapters.
+    -- Hotkeys: <leader>tn/<leader>tf/<leader>ta/<leader>tL/<leader>ts/<leader>to
     -- --------------------------------------------------------
     {
         "nvim-neotest/neotest",
@@ -127,6 +165,7 @@ return {
             "nvim-lua/plenary.nvim",
             "nvim-treesitter/nvim-treesitter",
             "rouge8/neotest-rust",
+            "nvim-neotest/neotest-go",
         },
         keys = {
             {
@@ -138,6 +177,22 @@ return {
                 "<leader>tf",
                 function() require("neotest").run.run(vim.fn.expand("%")) end,
                 desc = "Тест: текущий файл",
+            },
+            {
+                "<leader>ta",
+                function()
+                    local filename = vim.api.nvim_buf_get_name(0)
+                    local start_dir = filename ~= "" and vim.fs.dirname(filename) or vim.fn.getcwd()
+                    local root = vim.fs.root(start_dir, { "Cargo.toml", "go.work", "go.mod" })
+                        or vim.fn.getcwd()
+                    require("neotest").run.run(root)
+                end,
+                desc = "Тест: весь проект",
+            },
+            {
+                "<leader>tL",
+                function() require("neotest").run.run_last() end,
+                desc = "Тест: повторить последний",
             },
             {
                 "<leader>ts",
@@ -154,6 +209,13 @@ return {
             require("neotest").setup({
                 adapters = {
                     require("neotest-rust")({}),
+                    require("neotest-go")({
+                        experimental = {
+                            test_table = true,
+                        },
+                        args = { "-count=1", "-timeout=60s" },
+                        recursive_run = true,
+                    }),
                 },
             })
         end,

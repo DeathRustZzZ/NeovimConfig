@@ -124,8 +124,9 @@ return {
                 },
             })
 
-            vim.keymap.set("n", "<leader>cp", "<cmd>CratesShowPopup<cr>", { desc = "Crates: всплывающее окно" })
-            vim.keymap.set("n", "<leader>ch", "<cmd>CratesShowPopup<cr>", { desc = "Crates: всплывающее окно" })
+            vim.keymap.set("n", "<leader>cp", "<cmd>CratesShowPopup<cr>", { desc = "Crates: popup версий" })
+            -- ch → features (было дублем cp)
+            vim.keymap.set("n", "<leader>ch", "<cmd>CratesShowFeaturesPopup<cr>", { desc = "Crates: features крейта" })
             vim.keymap.set("n", "<leader>cd", function()
                 if crates.open_documentation and pcall(crates.open_documentation) then
                     return
@@ -152,7 +153,8 @@ return {
 
     -- --------------------------------------------------------
     -- Форматирование: Conform.nvim
-    -- Для Rust будет rustfmt, для TOML taplo, для Lua stylua
+    -- Rust: rustfmt; Go: goimports с fallback на gofmt;
+    -- TOML: taplo; Lua: stylua.
     -- + автоформат при сохранении
     -- --------------------------------------------------------
     {
@@ -164,19 +166,21 @@ return {
             conform.setup({
                 formatters_by_ft = {
                     rust = { "rustfmt" },
+                    go = { "goimports", "gofmt", stop_after_first = true },
                     toml = { "taplo" },
                     lua = { "stylua" },
                 },
                 format_on_save = function(_)
                     return {
                         timeout_ms = 1500,
-                        lsp_fallback = true,
+                        lsp_format = "fallback",
                     }
                 end,
             })
 
-            vim.keymap.set("n", "<leader>f", function()
-                conform.format({ async = true, lsp_fallback = true })
+            -- <leader>f занят группой поиска (Telescope); форматирование на <leader>fm
+            vim.keymap.set("n", "<leader>fm", function()
+                conform.format({ async = true, lsp_format = "fallback" })
             end, { desc = "Форматировать файл" })
         end,
     },
@@ -211,24 +215,33 @@ return {
         },
         opts = {
             automatic_enable = false,
-            ensure_installed = { "lua_ls", "taplo" },
+            ensure_installed = { "lua_ls", "taplo", "gopls" },
         },
     },
 
     -- --------------------------------------------------------
     -- mason-tool-installer: автоустановка CLI инструментов
-    -- Hotkeys/commands: :MasonToolsInstall, :MasonToolsUpdate
+    -- Hotkeys/commands: <leader>pM → :MasonToolsInstall, :MasonToolsUpdate
+    --
+    -- run_on_start = false: инструменты НЕ устанавливаются при каждом старте
+    -- (избегаем лишних сетевых запросов и задержки при открытии Neovim).
+    -- На новой машине запусти :MasonToolsInstall вручную (<leader>pM).
     -- --------------------------------------------------------
     {
         "WhoIsSethDaniel/mason-tool-installer.nvim",
         event = "VeryLazy",
         dependencies = { "williamboman/mason.nvim" },
+        keys = {
+            { "<leader>pM", "<cmd>MasonToolsInstall<cr>", desc = "Установить инструменты (Mason)" },
+        },
         opts = {
             ensure_installed = {
                 "rust-analyzer",
                 "codelldb",
                 "taplo",
                 "stylua",
+                "goimports",
+                "delve",
             },
             auto_update = false,
             run_on_start = false,

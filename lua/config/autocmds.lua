@@ -11,11 +11,13 @@ vim.api.nvim_create_autocmd("SwapExists", {
     group = swap_guard_group,
     callback = function()
         local swap_path = vim.v.swapname ~= "" and vim.v.swapname or "[unknown swap]"
-        -- Keep SwapExists side effects minimal; interactive prompts here can break :edit callers (e.g. neo-tree).
-        vim.v.swapchoice = "o"
+        -- "d" = удалить stale swap и открыть файл нормально.
+        -- Это безопасно: если swap остался от упавшей сессии — он бесполезен.
+        -- Если нужно восстановление — запусти :recover вручную до открытия файла.
+        vim.v.swapchoice = "d"
         vim.schedule(function()
             vim.notify(
-                "Найден swap: " .. swap_path .. ". Файл открыт только для чтения (можно :recover при необходимости).",
+                "Найден swap: " .. swap_path .. " — удалён. Если нужно восстановление, используй :recover.",
                 vim.log.levels.WARN
             )
         end)

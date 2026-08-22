@@ -195,15 +195,16 @@
 ### Терминал
 | Клавиша | Что делает |
 |---|---|
-| `<leader>at` | Открыть/закрыть терминал |
+| `<leader>tt` | Открыть/закрыть терминал |
 | `<leader>tg` | Float-терминал |
-| `<leader>tf` | Горизонтальный терминал |
+| `<leader>th` | Горизонтальный терминал |
 
 ### Форматирование и пакеты
 | Клавиша | Что делает |
 |---|---|
-| `<leader>f` | Форматировать текущий файл |
+| `<leader>fm` | Форматировать текущий файл |
 | `<leader>pm` | Открыть Mason (LSP/инструменты) |
+| `<leader>pM` | Установить объявленные инструменты Mason |
 
 ### Переводчик
 | Клавиша | Что делает |
@@ -223,10 +224,10 @@
 ### Copilot (inline)
 | Клавиша | Что делает | Режим |
 |---|---|---|
-| `<C-l>` | Принять подсказку Copilot | `i` |
-| `<M-]>` | Следующая подсказка Copilot | `i` |
-| `<M-[>` | Предыдущая подсказка Copilot | `i` |
-| `<C-]>` | Скрыть подсказку Copilot | `i` |
+| `<F9>` | Принять одно слово Copilot | `i` |
+| `<F10>` | Принять всю подсказку Copilot | `i` |
+| `<F11>` | Скрыть подсказку Copilot | `i` |
+| `<F12>` | Включить/выключить Copilot | `n` |
 
 ### Copilot Chat / Codex
 | Клавиша | Что делает | Режим |
@@ -239,7 +240,7 @@
 
 ---
 
-## 10. Rust / Cargo
+## 10. Rust, Go и запуск проектов
 
 | Клавиша | Что делает |
 |---|---|
@@ -248,17 +249,25 @@
 | `<leader>cd` | Открыть docs.rs для crate под курсором |
 | `<leader>cu` | Обновить текущий crate |
 | `<leader>cU` | Обновить все crates |
-| `<leader>rR` | `cargo run` через Overseer |
-| `<leader>rb` | `cargo build` через Overseer |
-| `<leader>rt` | `cargo test` через Overseer |
-| `<leader>rc` | `cargo clippy --all-targets --all-features` через Overseer |
+| `<leader>rR` | Rust: `cargo run`; Go: `go run .` |
+| `<leader>rb` | Rust: `cargo build`; Go: `go build ./...` |
+| `<leader>rt` | Rust: `cargo test`; Go: `go test ./...` |
+| `<leader>rc` | Rust: `cargo clippy`; Go: `go vet ./...` |
 | `<leader>rp` | Открыть/скрыть панель задач Overseer |
+
+Команда автоматически выбирает Rust или Go по текущему буферу и ближайшему
+`Cargo.toml`, `go.work` или `go.mod`, а затем запускается из корня проекта.
 
 ### Rust tooling (без отдельных хоткеев)
 - `rustaceanvim`: основной Rust LSP/IDE.
 - `rustowl`: подсветка ownership/lifetimes.
 - `ferris.nvim`: дополнительные rust-analyzer utilities.
 - `overseer.nvim`: task runner в стиле IDE.
+
+### Go tooling
+- `gopls`: LSP, completion, диагностика, semantic highlighting и inlay hints.
+- `goimports`/`gofmt`: форматирование и управление импортами при сохранении.
+- `delve`: отладчик Go через DAP.
 
 ---
 
@@ -272,6 +281,8 @@
 | `<leader>do` | Step over |
 | `<leader>dO` | Step out |
 | `<leader>du` | Показать/скрыть DAP UI |
+| `<leader>dT` | Go: отладить ближайший тест |
+| `<leader>dL` | Go: повторить отладку последнего теста |
 
 ---
 
@@ -281,6 +292,8 @@
 |---|---|
 | `<leader>tn` | Запустить ближайший тест |
 | `<leader>tf` | Запустить тесты текущего файла |
+| `<leader>ta` | Запустить тесты всего Rust/Go-проекта |
+| `<leader>tL` | Повторить последний запуск тестов |
 | `<leader>ts` | Показать/скрыть summary |
 | `<leader>to` | Показать/скрыть output panel |
 
@@ -315,7 +328,7 @@
 1. `Space ff` — открой файл.
 2. `i` — войди в режим ввода.
 3. Печатай код, `jk` — выйти в normal mode.
-4. `Space f` — форматнуть файл.
+4. `Space fm` — форматнуть файл.
 5. `gd` / `K` — перейти к определению и посмотреть документацию.
 6. `Space dn` / `Space dd` — пройтись по ошибкам.
 7. `Space w` — сохранить.

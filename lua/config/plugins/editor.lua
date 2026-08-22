@@ -3,21 +3,63 @@ return {
     -- Treesitter: умная подсветка/отступы
     -- + textobjects: удобные движения/объекты по функциям/блокам
     -- --------------------------------------------------------
+    -- --------------------------------------------------------
+    -- Treesitter: подсветка, отступы, textobjects — один configs.setup()
+    -- Зависимости textobjects объявлены здесь, чтобы не было второго
+    -- configs.setup() который перетирает highlight/indent/ensure_installed.
+    -- --------------------------------------------------------
     {
         "nvim-treesitter/nvim-treesitter",
+        -- Neovim 0.11 uses the legacy Treesitter API below. The main branch
+        -- requires Neovim 0.12 and a different configuration style.
+        branch = "master",
         build = ":TSUpdate",
         event = { "BufReadPost", "BufNewFile" },
         dependencies = {
             "HiPhish/rainbow-delimiters.nvim",
+            "nvim-treesitter/nvim-treesitter-textobjects",
         },
         config = function()
             local ok, configs = pcall(require, "nvim-treesitter.configs")
             if not ok then return end
 
             configs.setup({
-                ensure_installed = { "rust", "toml", "lua", "vim", "vimdoc", "query", "json", "yaml", "markdown" },
+                ensure_installed = {
+                    "rust",
+                    "toml",
+                    "go",
+                    "gomod",
+                    "gosum",
+                    "gowork",
+                    "gotmpl",
+                    "lua",
+                    "vim",
+                    "vimdoc",
+                    "query",
+                    "json",
+                    "yaml",
+                    "markdown",
+                },
                 highlight = { enable = true },
                 indent = { enable = true },
+                textobjects = {
+                    select = {
+                        enable = true,
+                        lookahead = true,
+                        keymaps = {
+                            ["af"] = "@function.outer",
+                            ["if"] = "@function.inner",
+                            ["ac"] = "@class.outer",
+                            ["ic"] = "@class.inner",
+                        },
+                    },
+                    move = {
+                        enable = true,
+                        set_jumps = true,
+                        goto_next_start = { ["]m"] = "@function.outer" },
+                        goto_previous_start = { ["[m"] = "@function.outer" },
+                    },
+                },
             })
         end,
     },
@@ -48,34 +90,13 @@ return {
             }
         end,
     },
+    -- nvim-treesitter-textobjects объявлен как dependency выше — отдельный
+    -- top-level entry не нужен, lazy не дедуплицирует конфиги если у плагина
+    -- два entries с config функциями.
     {
         "nvim-treesitter/nvim-treesitter-textobjects",
-        event = { "BufReadPost", "BufNewFile" },
-        config = function()
-            local ok, configs = pcall(require, "nvim-treesitter.configs")
-            if not ok then return end
-
-            configs.setup({
-                textobjects = {
-                    select = {
-                        enable = true,
-                        lookahead = true,
-                        keymaps = {
-                            ["af"] = "@function.outer",
-                            ["if"] = "@function.inner",
-                            ["ac"] = "@class.outer",
-                            ["ic"] = "@class.inner",
-                        },
-                    },
-                    move = {
-                        enable = true,
-                        set_jumps = true,
-                        goto_next_start = { ["]m"] = "@function.outer" },
-                        goto_previous_start = { ["[m"] = "@function.outer" },
-                    },
-                },
-            })
-        end,
+        branch = "master",
+        lazy = true,
     },
 
     -- --------------------------------------------------------
@@ -418,16 +439,16 @@ return {
 
     -- --------------------------------------------------------
     -- Toggleterm: быстрый терминал внутри Neovim
-    -- Hotkeys: <leader>at/<leader>tg/<leader>tf
+    -- Hotkeys: <leader>tt/<leader>tg/<leader>th
     -- --------------------------------------------------------
     {
         "akinsho/toggleterm.nvim",
         version = "*",
         cmd = { "ToggleTerm", "TermExec" },
         keys = {
-            { "<leader>at", "<cmd>ToggleTerm<cr>", desc = "Показать/скрыть терминал" },
+            { "<leader>tt", "<cmd>ToggleTerm<cr>", desc = "Показать/скрыть терминал" },
             { "<leader>tg", "<cmd>ToggleTerm direction=float<cr>", desc = "Терминал (float)" },
-            { "<leader>tf", "<cmd>ToggleTerm direction=horizontal<cr>", desc = "Терминал (горизонтальный)" },
+            { "<leader>th", "<cmd>ToggleTerm direction=horizontal<cr>", desc = "Терминал (горизонтальный)" },
         },
         opts = {
             open_mapping = nil,
@@ -440,40 +461,63 @@ return {
     },
 
     -- --------------------------------------------------------
-    -- AI: GitHub Copilot inline completion
-    -- Требует Node.js >= 18 и авторизацию через :Copilot setup
+    -- AI: GitHub Copilot — Zed-style режим
+    -- Подсказки появляются автоматически (ghost text)
+    -- Tab принимает одно слово, <C-l> — всю подсказку
+    -- <C-Space> — принудительно запросить подсказку
+    -- Требует Node.js >= 18 и однократного :Copilot setup
     -- --------------------------------------------------------
     {
         "github/copilot.vim",
+        enabled = true,
         event = "InsertEnter",
         init = function()
+            -- Tab отдан cmp+copilot word-accept (см. tools.lua)
             vim.g.copilot_no_tab_map = true
-            vim.g.copilot_enabled = false
         end,
         config = function()
-            vim.keymap.set("i", "<C-\\>", "<Plug>(copilot-suggest)", {
-                silent = true,
-                desc = "Copilot: показать подсказку (ручной запуск)",
-            })
-            vim.keymap.set("i", "<C-l>", 'copilot#Accept("\\<CR>")', {
+            -- F9:  принять одно слово
+            -- F10: принять всю подсказку
+            -- F11: скрыть подсказку
+            vim.keymap.set("i", "<F9>", "copilot#AcceptWord()", {
                 expr = true,
                 replace_keycodes = false,
                 silent = true,
-                desc = "Copilot: принять",
+                desc = "Copilot: принять одно слово",
             })
-            vim.keymap.set("i", "<M-]>", "<Plug>(copilot-next)", { silent = true, desc = "Copilot: следующая подсказка" })
-            vim.keymap.set("i", "<M-[>", "<Plug>(copilot-previous)",
-                { silent = true, desc = "Copilot: предыдущая подсказка" })
-            vim.keymap.set("i", "<C-]>", "<Plug>(copilot-dismiss)", { silent = true, desc = "Copilot: скрыть" })
+            vim.keymap.set("i", "<F10>", 'copilot#Accept("\\<CR>")', {
+                expr = true,
+                replace_keycodes = false,
+                silent = true,
+                desc = "Copilot: принять всю подсказку",
+            })
+            vim.keymap.set("i", "<F11>", "copilot#Dismiss()", {
+                expr = true,
+                replace_keycodes = false,
+                silent = true,
+                desc = "Copilot: скрыть",
+            })
+            vim.keymap.set("n", "<F12>", function()
+                local enabled = vim.fn["copilot#Enabled"]()
+                if enabled == 1 then
+                    vim.cmd("Copilot disable")
+                    vim.notify("Copilot: выключен", vim.log.levels.INFO)
+                else
+                    vim.cmd("Copilot enable")
+                    vim.notify("Copilot: включён", vim.log.levels.INFO)
+                end
+            end, { silent = true, desc = "Copilot: вкл/выкл (toggle)" })
         end,
     },
 
     -- --------------------------------------------------------
-    -- AI: Copilot Chat (требует установленный Copilot)
+    -- AI: Copilot Chat
+    -- Загружается только если copilot.vim enabled = true выше.
     -- Hotkeys: <leader>ac/<leader>ae/<leader>ar/<leader>af
     -- --------------------------------------------------------
     {
         "CopilotC-Nvim/CopilotChat.nvim",
+        enabled = true,
         dependencies = {
             "github/copilot.vim",
             "nvim-lua/plenary.nvim",

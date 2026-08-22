@@ -18,18 +18,20 @@ return {
                 group = "+",
             },
             spec = {
-                { "<leader>a", group = "AI" },
-                { "<leader>b", group = "Буферы" },
-                { "<leader>c", group = "Cargo/Crates" },
-                { "<leader>d", group = "Диагностика/Отладка" },
-                { "<leader>f", group = "Поиск/Форматирование" },
-                { "<leader>g", group = "Git" },
-                { "<leader>h", group = "Harpoon/Hunks" },
-                { "<leader>p", group = "Пакеты" },
-                { "<leader>r", group = "Rust/Runner" },
-                { "<leader>t", group = "Терминал/Тесты/Заметки" },
-                { "<leader>u", group = "Интерфейс" },
-                { "<leader>x", group = "Trouble/Списки" },
+                { "<leader>a",  group = "AI" },
+                { "<leader>b",  group = "Буферы" },
+                { "<leader>c",  group = "Cargo/Crates" },
+                { "<leader>d",  group = "Диагностика/Отладка" },
+                -- <leader>f = группа поиска; форматирование переехало на <leader>fm
+                { "<leader>f",  group = "Поиск/Форматирование" },
+                { "<leader>g",  group = "Git" },
+                { "<leader>h",  group = "Harpoon/Hunks" },
+                { "<leader>j",  group = "Прыжки (Flash)" },
+                { "<leader>p",  group = "Пакеты" },
+                { "<leader>r",  group = "Run/Build (Rust/Go)" },
+                { "<leader>t",  group = "Терминал/Тесты" },
+                { "<leader>u",  group = "Интерфейс" },
+                { "<leader>x",  group = "Trouble/Списки" },
             },
         },
     },
@@ -155,24 +157,32 @@ return {
     },
 
     -- --------------------------------------------------------
-    -- UI для vim.ui.select/input (лучше интерфейс команд/меню)
-    -- Hotkeys/commands: используется автоматически через vim.ui.select/input
+    -- UI для vim.ui.select/input
+    -- Единственный обработчик vim.ui.select — telescope-ui-select убран,
+    -- чтобы не было race condition двух плагинов перехватывающих один хук.
+    -- dressing использует telescope внутри через backend = { "telescope" }.
     -- --------------------------------------------------------
     {
         "stevearc/dressing.nvim",
         event = "VeryLazy",
-        opts = {
-            input = {
-                border = "rounded",
-                relative = "cursor",
-            },
-            select = {
-                backend = { "telescope", "builtin" },
-                builtin = {
+        -- Используем config вместо opts, т.к. require("telescope.themes")
+        -- нельзя вызывать при парсинге spec (telescope ещё не загружен).
+        config = function()
+            require("dressing").setup({
+                input = {
                     border = "rounded",
+                    relative = "cursor",
                 },
-            },
-        },
+                select = {
+                    -- telescope — единственный backend, builtin как запасной
+                    backend = { "telescope", "builtin" },
+                    telescope = require("telescope.themes").get_dropdown({}),
+                    builtin = {
+                        border = "rounded",
+                    },
+                },
+            })
+        end,
     },
 
     -- --------------------------------------------------------
@@ -464,7 +474,9 @@ return {
         dependencies = {
             "nvim-lua/plenary.nvim",
             "nvim-telescope/telescope-fzf-native.nvim",
-            "nvim-telescope/telescope-ui-select.nvim",
+            -- telescope-ui-select удалён: dressing.nvim обрабатывает vim.ui.select
+            -- и сам вызывает telescope picker через backend = { "telescope" }.
+            -- Держать оба плагина = недетерминированный захват vim.ui.select.
         },
         cmd = "Telescope",
         keys = {
@@ -483,12 +495,8 @@ return {
                     borderchars = { "╭", "─", "╮", "│", "╯", "─", "╰", "│" },
                     winblend = 0,
                 },
-                extensions = {
-                    ["ui-select"] = require("telescope.themes").get_dropdown({}),
-                },
             })
             pcall(telescope.load_extension, "fzf")
-            pcall(telescope.load_extension, "ui-select")
         end,
     },
     {
@@ -498,5 +506,4 @@ return {
         end,
         build = "make", -- нужен make (base-devel на Arch)
     },
-    { "nvim-telescope/telescope-ui-select.nvim" },
 }

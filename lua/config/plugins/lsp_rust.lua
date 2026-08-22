@@ -1,3 +1,63 @@
+local function project_context()
+    local filename = vim.api.nvim_buf_get_name(0)
+    local start_dir = filename ~= "" and vim.fs.dirname(filename) or vim.fn.getcwd()
+    local filetype = vim.bo.filetype
+
+    if filetype == "rust" then
+        return "rust", vim.fs.root(start_dir, "Cargo.toml") or start_dir
+    end
+    if filetype == "go" or filetype == "gomod" or filetype == "gowork" or filetype == "gotmpl" then
+        return "go", vim.fs.root(start_dir, { "go.work", "go.mod" }) or start_dir
+    end
+
+    local rust_root = vim.fs.root(start_dir, "Cargo.toml")
+    local go_root = vim.fs.root(start_dir, { "go.work", "go.mod" })
+    if rust_root and go_root then
+        -- The longest path is the nearest project root in a mixed monorepo.
+        if #go_root > #rust_root then
+            return "go", go_root
+        end
+        return "rust", rust_root
+    end
+    if go_root then return "go", go_root end
+    if rust_root then return "rust", rust_root end
+end
+
+local project_commands = {
+    rust = {
+        run = { name = "Rust: cargo run", cmd = { "cargo", "run" } },
+        build = { name = "Rust: cargo build", cmd = { "cargo", "build" } },
+        test = { name = "Rust: cargo test", cmd = { "cargo", "test" } },
+        check = {
+            name = "Rust: cargo clippy",
+            cmd = { "cargo", "clippy", "--all-targets", "--all-features" },
+        },
+    },
+    go = {
+        run = { name = "Go: go run .", cmd = { "go", "run", "." } },
+        build = { name = "Go: go build ./...", cmd = { "go", "build", "./..." } },
+        test = { name = "Go: go test ./...", cmd = { "go", "test", "./..." } },
+        check = { name = "Go: go vet ./...", cmd = { "go", "vet", "./..." } },
+    },
+}
+
+local function run_project_task(action)
+    local kind, root = project_context()
+    local spec = kind and project_commands[kind] and project_commands[kind][action]
+    if not spec then
+        vim.notify("Не найден Cargo.toml, go.mod или go.work", vim.log.levels.WARN)
+        return
+    end
+
+    local task = require("overseer").new_task({
+        name = spec.name,
+        cmd = spec.cmd,
+        cwd = root,
+        components = { "default" },
+    })
+    task:start()
+end
+
 return {
     -- LSP базовая конфигурация (кроме Rust)
     -- ВАЖНО: rust_analyzer здесь НЕ настраиваем — его полностью ведёт rustaceanvim,
@@ -59,7 +119,6 @@ return {
                 callback = function(args)
                     local opts = { buffer = args.buf }
                     local client = vim.lsp.get_client_by_id(args.data.client_id)
-                    local navic_ok, navic = pcall(require, "nvim-navic")
                     vim.keymap.set("n", "gd", vim.lsp.buf.definition,
                         vim.tbl_extend("force", opts, { desc = "LSP: перейти к определению" }))
                     vim.keymap.set("n", "gr", vim.lsp.buf.references,
@@ -73,10 +132,6 @@ return {
 
                     if client_supports_inlay_hints(client) then
                         set_inlay_hints(args.buf, true)
-                    end
-
-                    if navic_ok and client and client.server_capabilities and client.server_capabilities.documentSymbolProvider then
-                        pcall(navic.attach, client, args.buf)
                     end
 
                     vim.keymap.set("n", "<leader>uh", function()
@@ -156,9 +211,38 @@ return {
                 taplo = {
                     capabilities = capabilities,
                 },
+                gopls = {
+                    capabilities = capabilities,
+                    settings = {
+                        gopls = {
+                            -- gopls 0.22+ does not advertise semantic tokens by
+                            -- default; they enrich Treesitter with type-aware colors.
+                            semanticTokens = true,
+                            usePlaceholders = true,
+                            staticcheck = true,
+                            hints = {
+                                assignVariableTypes = true,
+                                rangeVariableTypes = true,
+                                parameterNames = true,
+                                functionTypeParameters = true,
+                                compositeLiteralFields = true,
+                                compositeLiteralTypes = true,
+                                constantValues = true,
+                                -- Useful, but intentionally disabled to avoid a
+                                -- comment-like hint after every ignored error.
+                                ignoredError = false,
+                            },
+                        },
+                    },
+                },
             }
 
-            local use_new_lsp_api = type(vim.lsp.config) == "function" and type(vim.lsp.enable) == "function"
+            -- In Neovim 0.11 `vim.lsp.config` is a callable table, not a plain
+            -- function. Checking its Lua type made all non-Rust servers silently
+            -- fall back to the legacy loader used by older nvim-lspconfig releases.
+            local use_new_lsp_api = vim.fn.has("nvim-0.11") == 1
+                and vim.lsp.config ~= nil
+                and type(vim.lsp.enable) == "function"
             local ok_lspconfig, lspconfig = pcall(require, "lspconfig")
 
             for server, config in pairs(servers) do
@@ -198,6 +282,22 @@ return {
                             },
                             checkOnSave = true,
                             check = { command = "clippy" },
+                            inlayHints = {
+                                bindingModeHints = { enable = true },
+                                chainingHints = { enable = true },
+                                closureReturnTypeHints = { enable = "with_block" },
+                                lifetimeElisionHints = {
+                                    enable = "skip_trivial",
+                                    useParameterNames = true,
+                                },
+                                parameterHints = { enable = true },
+                                typeHints = {
+                                    enable = true,
+                                    hideClosureInitialization = false,
+                                    hideClosureParameter = false,
+                                    hideInferredTypes = false,
+                                },
+                            },
                         },
                     },
                 },
@@ -220,7 +320,8 @@ return {
     },
 
     -- --------------------------------------------------------
-    -- Overseer: task runner (RustRover-like Run/Build/Test/Clippy)
+    -- Overseer: language-aware runner for Rust and Go.
+    -- The same muscle memory runs the project matching the current buffer.
     -- Hotkeys: <leader>rR/<leader>rt/<leader>rc/<leader>rb/<leader>rp
     -- --------------------------------------------------------
     {
@@ -228,10 +329,10 @@ return {
         cmd = { "OverseerOpen", "OverseerToggle", "OverseerRunCmd" },
         keys = {
             { "<leader>rp", "<cmd>OverseerToggle<cr>", desc = "Панель задач (Overseer)" },
-            { "<leader>rb", "<cmd>OverseerRunCmd cargo build<cr>", desc = "Rust: собрать проект" },
-            { "<leader>rt", "<cmd>OverseerRunCmd cargo test<cr>", desc = "Rust: запустить тесты" },
-            { "<leader>rc", "<cmd>OverseerRunCmd cargo clippy --all-targets --all-features<cr>", desc = "Rust: проверить clippy" },
-            { "<leader>rR", "<cmd>OverseerRunCmd cargo run<cr>", desc = "Rust: запустить" },
+            { "<leader>rb", function() run_project_task("build") end, desc = "Собрать текущий проект" },
+            { "<leader>rt", function() run_project_task("test") end, desc = "Тестировать текущий проект" },
+            { "<leader>rc", function() run_project_task("check") end, desc = "Проверить текущий проект" },
+            { "<leader>rR", function() run_project_task("run") end, desc = "Запустить текущий проект" },
         },
         opts = {
             strategy = "toggleterm",
