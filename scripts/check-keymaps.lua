@@ -39,6 +39,7 @@ vim.keymap.set = function(mode, lhs, rhs, opts)
 end
 
 local config = vim.fn.stdpath("config") .. "/init.lua"
+vim.go.loadplugins = true
 local ok, err = pcall(dofile, config)
 vim.keymap.set = original_set
 

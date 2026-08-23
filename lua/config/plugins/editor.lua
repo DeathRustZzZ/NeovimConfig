@@ -48,8 +48,41 @@ return {
                 "typescript",
             }
 
-            require("nvim-treesitter").setup({
+            local treesitter = require("nvim-treesitter")
+            treesitter.setup({
                 install_dir = vim.fn.stdpath("data") .. "/site",
+            })
+
+            local parser_install_started = false
+            local function install_missing_parsers()
+                if parser_install_started or vim.fn.executable("tree-sitter") ~= 1 then
+                    return
+                end
+
+                local installed = {}
+                for _, language in ipairs(treesitter.get_installed()) do
+                    installed[language] = true
+                end
+                local missing = vim.tbl_filter(function(language) return not installed[language] end, languages)
+                if #missing == 0 then
+                    return
+                end
+
+                parser_install_started = true
+                local ok, task = pcall(treesitter.install, missing)
+                if not ok then
+                    parser_install_started = false
+                    vim.notify("Treesitter: не удалось запустить установку парсеров: " .. tostring(task), vim.log.levels.ERROR)
+                end
+            end
+
+            -- На существующей установке это обновляет legacy parser binaries из старой
+            -- ветки nvim-treesitter; на чистой машине устанавливает нужные языки.
+            vim.schedule(install_missing_parsers)
+            vim.api.nvim_create_autocmd("User", {
+                pattern = "MasonToolsUpdateCompleted",
+                callback = install_missing_parsers,
+                desc = "Установить Treesitter-парсеры после появления tree-sitter CLI",
             })
 
             vim.api.nvim_create_autocmd("FileType", {
