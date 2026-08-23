@@ -568,12 +568,6 @@ return {
                 silent = true,
                 desc = "Copilot: показать подсказку (Option+G)",
             })
-            vim.keymap.set("i", "<C-l>", 'copilot#Accept("\\<CR>")', {
-                expr = true,
-                replace_keycodes = false,
-                silent = true,
-                desc = "Copilot: принять",
-            })
             vim.keymap.set("i", "<M-l>", 'copilot#Accept("\\<CR>")', {
                 expr = true,
                 replace_keycodes = false,

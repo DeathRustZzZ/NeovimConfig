@@ -72,6 +72,14 @@ local function visual_selection()
     return table.concat(lines, "\n")
 end
 
+local function move_window_from_insert(direction)
+    return function()
+        vim.cmd.stopinsert()
+        vim.cmd("wincmd " .. direction)
+        vim.schedule(vim.cmd.startinsert)
+    end
+end
+
 vim.api.nvim_create_user_command("Graphify", function(opts)
     graphify(opts.args)
 end, {
@@ -128,6 +136,10 @@ map("n", "<C-h>", "<C-w>h", "Окно слева")
 map("n", "<C-j>", "<C-w>j", "Окно снизу")
 map("n", "<C-k>", "<C-w>k", "Окно сверху")
 map("n", "<C-l>", "<C-w>l", "Окно справа")
+map("i", "<C-h>", move_window_from_insert("h"), "Окно слева из Insert Mode")
+map("i", "<C-j>", move_window_from_insert("j"), "Окно снизу из Insert Mode")
+map("i", "<C-k>", move_window_from_insert("k"), "Окно сверху из Insert Mode")
+map("i", "<C-l>", move_window_from_insert("l"), "Окно справа из Insert Mode")
 map("n", "<M-h>", "<C-w>h", "Окно слева (Option+H)")
 map("n", "<M-j>", "<C-w>j", "Окно снизу (Option+J)")
 map("n", "<M-k>", "<C-w>k", "Окно сверху (Option+K)")
