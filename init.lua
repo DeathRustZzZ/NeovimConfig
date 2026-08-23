@@ -1,6 +1,13 @@
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
+-- Конфиг не использует remote-plugin providers. Их автоопределение только замедляет
+-- запуск и создаёт ложные checkhealth warnings на чистой машине.
+vim.g.loaded_node_provider = 0
+vim.g.loaded_perl_provider = 0
+vim.g.loaded_python3_provider = 0
+vim.g.loaded_ruby_provider = 0
+
 require("config.options")
 require("config.ui").apply_options()
 

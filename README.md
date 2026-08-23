@@ -12,6 +12,9 @@ nvim
 ```
 
 При первом запуске `lazy.nvim` установит плагины согласно `lazy-lock.json`.
+После старта Mason автоматически проверит обязательные CLI-инструменты, а Treesitter
+установит парсеры для настроенных языков. После первой установки инструментов перезапустите
+Neovim один раз.
 
 ### Arch Linux
 
@@ -67,4 +70,9 @@ NVIM_PLUGIN_CHECK=1 nvim
 ```bash
 nvim --headless -u init.lua +qa
 nvim -n --headless -u NONE -l scripts/check-keymaps.lua
+nvim --headless -u NONE -l scripts/check-plugins.lua
 ```
+
+Для диагностики окружения используйте `:checkhealth config` (зависимости этого конфига)
+и общий `:checkhealth`. Python, Ruby, Perl и Node remote
+providers намеренно отключены: плагины этого конфига работают с CLI напрямую и не требуют их.

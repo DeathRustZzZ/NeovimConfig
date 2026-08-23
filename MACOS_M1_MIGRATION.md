@@ -55,6 +55,11 @@ brew install neovim git ripgrep fd lazygit translate-shell
 - `make` из Xcode Command Line Tools нужен для сборки `telescope-fzf-native.nvim`
 - `lazygit` нужен только для хоткея `<leader>gg`
 
+`tree-sitter-cli` и остальные инструменты из списка конфигурации устанавливаются через
+`:MasonToolsInstall`. После первой установки перезапустите Neovim, чтобы он установил или
+обновил Treesitter-парсеры. Это особенно важно после перехода со старой ветки
+`nvim-treesitter`, чьи parser binaries несовместимы с новой.
+
 ## 3. Шрифт
 
 В конфиге для GUI задан:

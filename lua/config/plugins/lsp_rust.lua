@@ -237,13 +237,13 @@ return {
     -- --------------------------------------------------------
     {
         "stevearc/overseer.nvim",
-        cmd = { "OverseerOpen", "OverseerToggle", "OverseerRunCmd" },
+        cmd = { "OverseerOpen", "OverseerToggle", "OverseerShell" },
         keys = {
             { "<leader>rp", "<cmd>OverseerToggle<cr>", desc = "Панель задач (Overseer)" },
-            { "<leader>rb", "<cmd>OverseerRunCmd cargo build<cr>", desc = "Rust: собрать проект" },
-            { "<leader>rt", "<cmd>OverseerRunCmd cargo test<cr>", desc = "Rust: запустить тесты" },
-            { "<leader>rc", "<cmd>OverseerRunCmd cargo clippy --all-targets --all-features<cr>", desc = "Rust: проверить clippy" },
-            { "<leader>rR", "<cmd>OverseerRunCmd cargo run<cr>", desc = "Rust: запустить" },
+            { "<leader>rb", "<cmd>OverseerShell cargo build<cr>", desc = "Rust: собрать проект" },
+            { "<leader>rt", "<cmd>OverseerShell cargo test<cr>", desc = "Rust: запустить тесты" },
+            { "<leader>rc", "<cmd>OverseerShell cargo clippy --all-targets --all-features<cr>", desc = "Rust: проверить clippy" },
+            { "<leader>rR", "<cmd>OverseerShell cargo run<cr>", desc = "Rust: запустить" },
         },
         opts = {
             strategy = "toggleterm",

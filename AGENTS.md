@@ -19,6 +19,7 @@ This repository is a personal Neovim configuration written in Lua. `init.lua` is
 - `nvim --headless "+Lazy! sync" +qa`: install or update plugins from `lazy-lock.json`.
 - `nvim --headless "+checkhealth" +qa`: run Neovim health checks.
 - `nvim --headless -u init.lua +qa`: smoke-test that the config loads without opening the UI.
+- `nvim --headless -u NONE -l scripts/check-plugins.lua`: force-load plugin specs and validate commands.
 - `nvim .`: run the configuration interactively during development.
 
 There is no separate build system; changes take effect when Neovim starts or the relevant Lua module is reloaded.
