@@ -4,6 +4,7 @@ local config = {
     command = "trans",
     target = "ru",
     engine = nil,
+    engines = { "bing", "google" },
     timeout_ms = 10000,
     cache_size = 100,
 }
@@ -163,9 +164,22 @@ function M.translate(source_text, opts)
     next_request_id = next_request_id + 1
     local request_id = next_request_id
 
+    local engines
+    if opts.engine or config.engine then
+        engines = { opts.engine or config.engine }
+    else
+        engines = opts.engines or config.engines or { "auto" }
+    end
+    for _, engine in ipairs(engines) do
+        if type(engine) ~= "string" or engine == "" then
+            report_error("некорректный движок перевода", opts.on_error)
+            return false
+        end
+    end
+
     local cache_key = table.concat({
         config.command,
-        opts.engine or config.engine or "",
+        table.concat(engines, ","),
         opts.source or "auto",
         target,
         text,
@@ -190,48 +204,83 @@ function M.translate(source_text, opts)
         return true
     end
 
-    local command_opts = vim.tbl_extend("force", opts, { target = target })
-    local ok, job_or_error = pcall(vim.system, build_command(command_opts), {
-        text = true,
-        stdin = text,
-        timeout = opts.timeout_ms or config.timeout_ms,
-    }, function(result)
-        vim.schedule(function()
-            if request_key then
-                local active = active_requests[request_key]
-                if not active or active.id ~= request_id then
+    local request = { id = request_id }
+    if request_key then
+        active_requests[request_key] = request
+    end
+
+    local function is_current()
+        if not request_key then
+            return true
+        end
+        local active = active_requests[request_key]
+        return active ~= nil and active.id == request_id
+    end
+
+    local function finish()
+        if request_key and is_current() then
+            active_requests[request_key] = nil
+        end
+    end
+
+    local last_error
+    local function attempt(index)
+        if not is_current() then
+            return nil
+        end
+
+        local command_opts = vim.tbl_extend("force", opts, {
+            target = target,
+            engine = engines[index],
+        })
+        local ok, job_or_error = pcall(vim.system, build_command(command_opts), {
+            text = true,
+            stdin = text,
+            timeout = opts.timeout_ms or config.timeout_ms,
+        }, function(result)
+            vim.schedule(function()
+                if not is_current() then
                     return
                 end
-                active_requests[request_key] = nil
-            end
 
-            local translated = normalize_output(result.stdout)
-            if result.code == 0 and translated ~= "" then
-                if not opts.no_cache then
-                    cache_put(cache_key, translated)
+                local translated = normalize_output(result.stdout)
+                if result.code == 0 and translated ~= "" then
+                    finish()
+                    if not opts.no_cache then
+                        cache_put(cache_key, translated)
+                    end
+                    if type(opts.on_success) == "function" then
+                        opts.on_success(translated, text)
+                    end
+                    return
                 end
-                if type(opts.on_success) == "function" then
-                    opts.on_success(translated, text)
-                end
-                return
-            end
 
-            report_error(normalize_error(result), opts.on_error)
+                last_error = engines[index] .. ": " .. normalize_error(result)
+                if index < #engines then
+                    attempt(index + 1)
+                    return
+                end
+
+                finish()
+                report_error(last_error, opts.on_error)
+            end)
         end)
-    end)
 
-    if not ok then
-        report_error("не удалось запустить переводчик: " .. tostring(job_or_error), opts.on_error)
-        return false
+        if not ok then
+            last_error = engines[index] .. ": не удалось запустить переводчик: " .. tostring(job_or_error)
+            if index < #engines then
+                return attempt(index + 1)
+            end
+            finish()
+            report_error(last_error, opts.on_error)
+            return nil
+        end
+
+        request.job = job_or_error
+        return job_or_error
     end
 
-    if request_key then
-        active_requests[request_key] = {
-            id = request_id,
-            job = job_or_error,
-        }
-    end
-    return job_or_error
+    return attempt(1) or false
 end
 
 function M.translate_and_notify(source_text, empty_message)

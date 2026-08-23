@@ -76,3 +76,6 @@ nvim --headless -u NONE -l scripts/check-plugins.lua
 Для диагностики окружения используйте `:checkhealth config` (зависимости этого конфига)
 и общий `:checkhealth`. Python, Ruby, Perl и Node remote
 providers намеренно отключены: плагины этого конфига работают с CLI напрямую и не требуют их.
+
+Переводчик `translate-shell` использует цепочку Bing → Google: если сервис ограничивает
+частоту запросов или временно недоступен, следующий backend пробуется автоматически.
